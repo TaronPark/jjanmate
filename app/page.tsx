@@ -13,6 +13,14 @@ export default function LandingPage() {
         </Link>
       </div>
 
+      {/* 랜딩 헤드카피 (2026-07-24 전략검토 확정, 안 3 기반. "100% 똑같은"은 과장 리스크로 완화) */}
+      <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.4, margin: '16px 0 4px' }}>
+        자취생은 자취생끼리, 사회초년생은 사회초년생끼리.
+      </h1>
+      <p style={{ fontSize: 13, color: '#555', margin: '0 0 16px' }}>
+        무작위 거지방에 지치셨나요? 짠메이트의 AI가 나와 비슷한 상황의 동료들만 있는 프라이빗 룸으로 매칭해 드립니다.
+      </p>
+
       <div style={{ margin: '12px 0' }}>
         {NICHE_CODES.map((code) => (
           <span key={code} className="chip">

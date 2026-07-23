@@ -5,6 +5,9 @@ import { NICHES, type NicheCode } from '@/lib/niches';
 // #전체 포함 서브태그 가로스크롤, 원클릭 공감 리액션(cheer/me_too).
 // TODO(1~2주차 이후): posts 테이블에서 ai_niche=해당 니치, status='success', is_spam=false 조회로 교체
 // TODO(4주차): reactions 테이블 insert/count 연동, 오늘 게시 여부에 따라 상태카드 분기
+// TODO(디자인 확정 후, 런칭 이후 백로그): 룸 타이틀 시각적 강조 — 2026-07-24 전략검토에서
+// "여기는 우리만의 안전한 방"이라는 소속감을 UI로 더 강화할 필요가 제기됨(폰트/아이콘 등).
+// 구체 스타일은 아직 미확정이라 지금은 일부러 손대지 않음 — 로드맵 "런칭 이후" 섹션 참고.
 export default function FeedPage({ params }: { params: { niche: NicheCode } }) {
   const niche = NICHES[params.niche] ?? NICHES.self_catering;
 

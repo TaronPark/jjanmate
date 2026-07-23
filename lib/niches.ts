@@ -13,9 +13,9 @@ export const NICHES: Record<NicheCode, { label: string; description: string; roo
     roomName: '자취생 식비 절약 룸',
   },
   low_income_worker: {
-    label: '저연봉근로자', // [가칭 — 확정되면 이 값만 수정]
-    description: '사회초년생 / 저연봉 근로자 (취업 후)',
-    roomName: '저연봉근로자 룸',
+    label: '사회초년생', // 2026-07-24 확정 (기존 "저연봉근로자"에서 변경 — 소득수준 대신 생애주기로 표현)
+    description: '사회에 갓 진출한 신입~저연차 직장인 (취업 후)',
+    roomName: '사회초년생 룸',
   },
   no_spend_challenge: {
     label: '무지출챌린지', // [가칭 — 확정되면 이 값만 수정]
