@@ -15,7 +15,7 @@ export default function PostPage() {
     setPosting(true);
     // TODO: await supabase.from('posts').insert({ content, status: 'pending', ... })
     setTimeout(() => {
-      router.push('/feed/self_catering');
+      router.push('/feed/monthly_rent_fighter');
     }, 1200);
   };
 

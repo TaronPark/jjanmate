@@ -2,7 +2,14 @@
 -- 짠메이트 MVP DB 스키마
 -- 대상: Supabase (PostgreSQL)
 -- 설계 근거: 짠메이트_DB설계_ERD.md 참고
--- 작성일: 2026-07-20 / 갱신일: 2026-07-21 (reactions 테이블 추가 — 아직 실제 Supabase 프로젝트 미적용)
+-- 작성일: 2026-07-20 / 갱신일: 2026-07-24
+--   2026-07-21: reactions 테이블 추가 (아직 실제 Supabase 프로젝트 미적용)
+--   2026-07-24: 니치 전면 개편(생애주기→소비 페인포인트)에 따라 CHECK 제약값 교체
+--     (self_catering/low_income_worker/no_spend_challenge →
+--      monthly_rent_fighter/impulse_expense_defender/lurker_lounge)
+--     실 데이터 0건 시점이라 이 파일은 바로 교체했으나, 실제 Supabase 프로젝트는
+--     기존 값으로 이미 적용돼 있어 ALTER TABLE ... DROP CONSTRAINT / ADD CONSTRAINT로
+--     별도 마이그레이션 필요 (1~2주차 DB 작업 시 reactions 테이블과 함께 반영 예정)
 -- ============================================================
 
 -- uuid 자동생성 함수 확장 (Supabase는 기본 활성화된 경우가 많지만 명시)
@@ -19,7 +26,7 @@ create table public.profiles (
   nickname text not null,
   -- 내부 고정 코드. 한글 표시명은 DB가 아니라 앱 코드(niches.ts)에서 매핑함 — 이름 변경 시 DB 무변경.
   onboarding_niche text not null
-    check (onboarding_niche in ('self_catering', 'low_income_worker', 'no_spend_challenge')),
+    check (onboarding_niche in ('monthly_rent_fighter', 'impulse_expense_defender', 'lurker_lounge')),
   current_streak int not null default 0,
   longest_streak int not null default 0,
   last_post_date date,
@@ -43,7 +50,7 @@ create table public.posts (
 
   -- AI 태깅 결과 (기획서 6번: niche, niche_hint_mismatch, subtags[], is_spam, spam_reason, confidence, status)
   ai_niche text
-    check (ai_niche is null or ai_niche in ('self_catering', 'low_income_worker', 'no_spend_challenge')),
+    check (ai_niche is null or ai_niche in ('monthly_rent_fighter', 'impulse_expense_defender', 'lurker_lounge')),
   niche_hint_mismatch boolean,
   subtags text[] check (subtags is null or array_length(subtags, 1) <= 3),
   is_spam boolean not null default false,
@@ -86,7 +93,7 @@ create index idx_posts_retry_queue
 create table public.matching_previews (
   id uuid primary key default gen_random_uuid(),
   niche text not null unique
-    check (niche in ('self_catering', 'low_income_worker', 'no_spend_challenge')),
+    check (niche in ('monthly_rent_fighter', 'impulse_expense_defender', 'lurker_lounge')),
   preview_snapshot jsonb not null,
   generated_at timestamptz not null default now()
 );

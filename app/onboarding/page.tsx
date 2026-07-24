@@ -25,7 +25,7 @@ export default function OnboardingPage() {
         </button>
       ))}
       <button
-        onClick={() => selectNiche('no_spend_challenge')}
+        onClick={() => selectNiche('lurker_lounge')}
         style={{ display: 'block', width: '100%', textAlign: 'left' }}
       >
         잘 모르겠어요

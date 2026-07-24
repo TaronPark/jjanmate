@@ -9,7 +9,7 @@ import { NICHES, type NicheCode } from '@/lib/niches';
 // "여기는 우리만의 안전한 방"이라는 소속감을 UI로 더 강화할 필요가 제기됨(폰트/아이콘 등).
 // 구체 스타일은 아직 미확정이라 지금은 일부러 손대지 않음 — 로드맵 "런칭 이후" 섹션 참고.
 export default function FeedPage({ params }: { params: { niche: NicheCode } }) {
-  const niche = NICHES[params.niche] ?? NICHES.self_catering;
+  const niche = NICHES[params.niche] ?? NICHES.monthly_rent_fighter;
 
   return (
     <main>
@@ -27,13 +27,14 @@ export default function FeedPage({ params }: { params: { niche: NicheCode } }) {
 
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12 }}>
         <span className="chip">#전체</span>
-        <span className="chip">#자취식비</span>
-        <span className="chip">#편의점절약</span>
-        <span className="chip">#배달비절약</span>
+        <span className="chip">#보일러외출모드</span>
+        <span className="chip">#배달앱삭제</span>
+        <span className="chip">#냉장고파먹기</span>
+        <span className="chip">#다이소득템</span>
       </div>
 
       <div className="card">
-        <p style={{ fontSize: 13, margin: '0 0 6px' }}>편의점 대신 집밥, 3500원 절약</p>
+        <p style={{ fontSize: 13, margin: '0 0 6px' }}>보일러 외출모드로 이번 달 관리비 2만원 방어</p>
         <p style={{ fontSize: 11, color: '#888', margin: '0 0 8px' }}>방금 전</p>
         <button style={{ fontSize: 11, marginRight: 6 }}>대단해요 12</button>
         <button style={{ fontSize: 11 }}>나도 절약중 8</button>
