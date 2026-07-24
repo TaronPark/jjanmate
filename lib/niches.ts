@@ -16,29 +16,55 @@
  * 서로 독립적으로 설계되어 있어, 한 유저가 여러 페인포인트에 걸쳐 있어도(예: 월세독립군 유저가
  * 홧김비용 얘기를 써도) 그 글은 자동으로 맞는 피드에 노출된다 — 니치 간 개념적 중첩을
  * 스키마 변경 없이 흡수하는 구조.
+ *
+ * 2026-07-24 추가 개편 (4-A/4-B UX 문구 반영): label/description 하나로는 화면별로 필요한
+ * 문구 톤이 달라 무리가 있어 필드를 세분화함.
+ * - label: 룸 칩·마스킹 등 범용 표시명 (기존 유지)
+ * - maskLabel: 매칭 프리뷰 닉네임 마스킹용 축약형(예: "SNS 지름신 & 홧김비용 방어"는 너무 길어
+ *   "지름신 방어"로 축약)
+ * - description: 기획서/ERD 등 문서용 대상 정의 설명 (기존 유지, UI에는 노출 안 함)
+ * - onboardingPrompt: 온보딩 화면에 보여줄 행동/페인포인트 중심 1인칭 문구
+ * - composePrompt: 게시 화면 상단 질문 문구 (눈팅러만 관찰형으로 분기)
  */
 
 export type NicheCode = 'monthly_rent_fighter' | 'impulse_expense_defender' | 'lurker_lounge';
 
 export const NICHES: Record<
   NicheCode,
-  { label: string; description: string; roomName: string; exampleSubtags: string[] }
+  {
+    label: string;
+    maskLabel: string;
+    description: string;
+    onboardingPrompt: string;
+    composePrompt: string;
+    roomName: string;
+    exampleSubtags: string[];
+  }
 > = {
   monthly_rent_fighter: {
     label: '월세 독립군',
+    maskLabel: '월세 독립군',
     description: '월세·관리비·공과금 등 고정비 압박 속 생존형 절약을 실천하는 1인 가구',
+    onboardingPrompt: '숨 막히는 월세·고정비 방어',
+    composePrompt: '오늘 얼마 쓰셨나요?',
     roomName: '숨만 쉬어도 나가는 돈, 월세 독립군 룸',
     exampleSubtags: ['보일러외출모드', '배달앱삭제', '냉장고파먹기', '다이소득템'],
   },
   impulse_expense_defender: {
     label: 'SNS 지름신 & 홧김비용 방어',
+    maskLabel: '지름신 방어',
     description: 'SNS발 포모(FOMO) 충동구매와 스트레스성 과소비를 참아내는 청년층',
+    onboardingPrompt: '인스타 지름신·홧김비용 방어',
+    composePrompt: '오늘 어떤 지출을 참았나요?',
     roomName: 'SNS 지름신 & 홧김비용 방어 룸',
     exampleSubtags: ['포모디톡스', '인스타템방어', '시발비용방어', '택시비참음', '잔바리지출'],
   },
   lurker_lounge: {
     label: '프로눈팅러의 대리만족',
+    maskLabel: '눈팅러',
     description: '아직 내 소비 패턴을 모르거나 미션 참여가 부담스러운 눈팅족을 위한 범용 대기실',
+    onboardingPrompt: '일단 남들 아끼는 거 구경할래요',
+    composePrompt: '오늘 다른 사람들의 절약을 보고 어떤 자극을 받았나요?',
     roomName: '프로눈팅러의 대리만족 룸',
     exampleSubtags: ['절약관찰기', '대리만족', '무지출구경'],
   },

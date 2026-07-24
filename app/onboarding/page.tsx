@@ -12,6 +12,10 @@ export default function OnboardingPage() {
     router.push(`/preview?niche=${code}`);
   };
 
+  // 2026-07-24 개편: 온보딩 선택지를 페인포인트 행동 문구(onboardingPrompt) 중심으로 재구성.
+  // 기존엔 니치 3개 버튼 + 별도 "잘 모르겠어요" 버튼이 있어 눈팅러가 중복 노출됐는데,
+  // 눈팅러의 onboardingPrompt("일단 남들 아끼는 거 구경할래요") 자체가 그 역할을 하므로
+  // 별도 폴백 버튼은 제거함.
   return (
     <main>
       <h3>지금 어떤 상황이신가요</h3>
@@ -21,15 +25,10 @@ export default function OnboardingPage() {
           onClick={() => selectNiche(code)}
           style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 8 }}
         >
-          {NICHES[code].label} <span style={{ color: '#888', fontSize: 12 }}>{NICHES[code].description}</span>
+          {NICHES[code].onboardingPrompt}{' '}
+          <span style={{ color: '#888', fontSize: 12 }}>· {NICHES[code].label}</span>
         </button>
       ))}
-      <button
-        onClick={() => selectNiche('lurker_lounge')}
-        style={{ display: 'block', width: '100%', textAlign: 'left' }}
-      >
-        잘 모르겠어요
-      </button>
     </main>
   );
 }

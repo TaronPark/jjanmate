@@ -20,7 +20,7 @@ export default function FeedPage({ params }: { params: { niche: NicheCode } }) {
 
       <div className="card" style={{ background: '#e6f1fb' }}>
         <p style={{ fontSize: 12, margin: '0 0 8px' }}>오늘 지출을 아직 기록하지 않았어요!</p>
-        <Link href="/post">
+        <Link href={`/post?niche=${params.niche}`}>
           <button style={{ width: '100%' }}>오늘의 절약 기록하기</button>
         </Link>
       </div>
