@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NICHES, type NicheCode } from '@/lib/niches';
 
@@ -9,7 +9,7 @@ import { NICHES, type NicheCode } from '@/lib/niches';
 // 지금은 status='pending'으로 insert 후 태깅 결과를 폴링/구독하는 흐름으로 구현 예정 (기획서 6번 참고)
 // 2026-07-24: 어느 룸에서 글을 쓰는지 알아야 4-B 재방문 루프의 입력창 문구(composePrompt) 분기 및
 // 게시 후 리다이렉트가 가능해, feed/[niche]에서 ?niche= 쿼리로 현재 룸을 넘겨받도록 변경.
-export default function PostPage() {
+function PostContent() {
   const router = useRouter();
   const params = useSearchParams();
   const niche = (params.get('niche') as NicheCode) || 'monthly_rent_fighter';
@@ -50,5 +50,13 @@ export default function PostPage() {
         게시하기
       </button>
     </main>
+  );
+}
+
+export default function PostPage() {
+  return (
+    <Suspense fallback={null}>
+      <PostContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { NicheCode } from '@/lib/niches';
 
@@ -12,7 +12,7 @@ import type { NicheCode } from '@/lib/niches';
 // TODO(1~2주차): 제출 시 supabase.from('profiles').upsert({ id: user.id, nickname, onboarding_niche: niche })로 교체.
 // 이미 닉네임을 설정한 재방문 유저는 이 화면을 건너뛰고 바로 피드로 가야 함 — 세션/프로필
 // 존재 여부 체크 로직과 함께 1~2주차에 구현 예정.
-export default function NicknamePage() {
+function NicknameContent() {
   const router = useRouter();
   const params = useSearchParams();
   const niche = (params.get('niche') as NicheCode) || 'monthly_rent_fighter';
@@ -40,5 +40,13 @@ export default function NicknamePage() {
         시작하기
       </button>
     </main>
+  );
+}
+
+export default function NicknamePage() {
+  return (
+    <Suspense fallback={null}>
+      <NicknameContent />
+    </Suspense>
   );
 }

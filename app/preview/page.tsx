@@ -1,11 +1,15 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NICHES, ctaByNiche, type NicheCode } from '@/lib/niches';
 
 // 4-A 3번: 매칭 프리뷰. 2026-07-21 검토 반영 — 블러 없이 본문 실제 노출, 닉네임만 마스킹.
 // TODO(3~5주차): 더미 카드를 matching_previews 테이블(니치별 캐시)로 교체
-export default function PreviewPage() {
+// 2026-07-25: useSearchParams 사용부를 Suspense로 감쌈 — Vercel 프로덕션 빌드(next build)에서
+// "useSearchParams() should be wrapped in a suspense boundary" 에러로 배포가 실패해 수정함
+// (npm run dev는 이 규칙을 강제하지 않아 로컬에서는 못 잡았던 문제).
+function PreviewContent() {
   const router = useRouter();
   const params = useSearchParams();
   const niche = (params.get('niche') as NicheCode) || 'monthly_rent_fighter';
@@ -26,5 +30,13 @@ export default function PreviewPage() {
         {niche === 'lurker_lounge' ? '지금 아지트 입장해서 구경하기' : '가입하고 계속하기'}
       </button>
     </main>
+  );
+}
+
+export default function PreviewPage() {
+  return (
+    <Suspense fallback={null}>
+      <PreviewContent />
+    </Suspense>
   );
 }

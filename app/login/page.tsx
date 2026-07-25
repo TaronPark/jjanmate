@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { NicheCode } from '@/lib/niches';
@@ -13,7 +14,7 @@ import type { NicheCode } from '@/lib/niches';
 // 원래 선택했던 룸의 게시 화면으로 바로 돌아가도록 함.
 // 2026-07-25: 로그인 직후 바로 /post가 아니라 /nickname(자체 닉네임 입력)으로 이동하도록 변경 —
 // 카카오 닉네임/프로필사진을 가져오지 않기로 했기 때문(자세한 판단 근거는 app/nickname 참고).
-export default function LoginPage() {
+function LoginContent() {
   const params = useSearchParams();
   const niche = (params.get('niche') as NicheCode) || 'monthly_rent_fighter';
 
@@ -38,5 +39,13 @@ export default function LoginPage() {
       <p style={{ fontSize: 11, color: '#888' }}>구글 등 추가 로그인은 2차 확장 예정 (MVP는 카카오 단일)</p>
       <p style={{ fontSize: 11, color: '#888' }}>계속 진행 시 이용약관 및 개인정보처리방침에 동의하게 됩니다.</p>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }
