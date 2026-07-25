@@ -9,8 +9,10 @@ import type { NicheCode } from '@/lib/niches';
 // 동작 전제조건(코드 밖 설정, 사람이 직접 해야 함):
 //   1) 카카오 개발자 콘솔(developers.kakao.com)에 앱 등록 + REST API Key/Client Secret 발급
 //   2) Supabase 대시보드 > Authentication > Providers > Kakao 활성화 + 위 키 입력
-// niche는 preview -> login -> post로 쿼리파라미터를 이어받아, 로그인 완료 후
+// niche는 preview -> login -> nickname -> post로 쿼리파라미터를 이어받아, 온보딩 완료 후
 // 원래 선택했던 룸의 게시 화면으로 바로 돌아가도록 함.
+// 2026-07-25: 로그인 직후 바로 /post가 아니라 /nickname(자체 닉네임 입력)으로 이동하도록 변경 —
+// 카카오 닉네임/프로필사진을 가져오지 않기로 했기 때문(자세한 판단 근거는 app/nickname 참고).
 export default function LoginPage() {
   const params = useSearchParams();
   const niche = (params.get('niche') as NicheCode) || 'monthly_rent_fighter';
@@ -19,7 +21,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
-        redirectTo: `${window.location.origin}/post?niche=${niche}`,
+        redirectTo: `${window.location.origin}/nickname?niche=${niche}`,
       },
     });
     if (error) {

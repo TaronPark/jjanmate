@@ -2,7 +2,7 @@
 -- 짠메이트 MVP DB 스키마
 -- 대상: Supabase (PostgreSQL)
 -- 설계 근거: 짠메이트_DB설계_ERD.md 참고
--- 작성일: 2026-07-20 / 갱신일: 2026-07-24
+-- 작성일: 2026-07-20 / 갱신일: 2026-07-25
 --   2026-07-21: reactions 테이블 추가 (아직 실제 Supabase 프로젝트 미적용)
 --   2026-07-24: 니치 전면 개편(생애주기→소비 페인포인트)에 따라 CHECK 제약값 교체
 --     (self_catering/low_income_worker/no_spend_challenge →
@@ -10,6 +10,8 @@
 --     실 데이터 0건 시점이라 이 파일은 바로 교체했으나, 실제 Supabase 프로젝트는
 --     기존 값으로 이미 적용돼 있어 ALTER TABLE ... DROP CONSTRAINT / ADD CONSTRAINT로
 --     별도 마이그레이션 필요 (1~2주차 DB 작업 시 reactions 테이블과 함께 반영 예정)
+--   2026-07-25: nickname 컬럼 코멘트 추가 — 카카오 닉네임이 아니라 로그인 직후 유저가
+--     직접 입력한 값을 저장하기로 결정 (컬럼 타입/제약조건 자체는 변경 없음)
 -- ============================================================
 
 -- uuid 자동생성 함수 확장 (Supabase는 기본 활성화된 경우가 많지만 명시)
@@ -34,6 +36,7 @@ create table public.profiles (
 );
 
 comment on table public.profiles is '짠메이트 사용자 프로필. auth.users(id)와 1:1 연결.';
+comment on column public.profiles.nickname is '로그인 직후 유저가 직접 입력한 짠메이트 전용 닉네임. 카카오 닉네임/프로필사진은 가져오지 않음(2026-07-25 결정, ERD 2-1 판단 이유 참고).';
 comment on column public.profiles.onboarding_niche is '가입 시 유저가 직접 선택한 니치 (AI 판정값과 별개, niche_hint_mismatch 계산의 기준값)';
 
 create index idx_profiles_onboarding_niche on public.profiles (onboarding_niche);
