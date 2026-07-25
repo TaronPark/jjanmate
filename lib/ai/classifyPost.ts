@@ -163,16 +163,27 @@ async function callClaude(content: string, onboardingNiche: NicheCode): Promise<
   return { ai_niche, subtags, is_spam, spam_reason, confidence };
 }
 
+export interface TaggingOutcome {
+  status: 'success' | 'low_confidence' | 'system_error';
+  ai_niche: NicheCode | null;
+  niche_hint_mismatch: boolean | null;
+}
+
 /**
  * 게시글 하나를 실제로 분류하고 posts 테이블에 결과를 반영한다.
  * service_role 클라이언트를 쓰는 이유: posts에는 UPDATE RLS 정책이 의도적으로 없음(스키마 참고) —
  * AI 파이프라인만 이 필드들을 쓸 수 있어야 하므로 RLS를 우회하는 service_role 키가 유일한 통로.
+ *
+ * 2026-07-25: 결과를 반환하도록 변경 — 호출부(app/post/actions.ts)가 "재분류된 니치로 리다이렉트
+ * 해야 하는지", "에러/저신뢰라 원래 룸에 상태 카드로 남겨야 하는지"를 즉시 판단해야 하기 때문
+ * (게시 후 상태 피드백: '유령 게시물' 문제 해결). DB round-trip을 다시 하지 않도록 여기서 계산한
+ * 값을 그대로 반환한다.
  */
 export async function runTaggingPipeline(
   postId: string,
   content: string,
   onboardingNiche: NicheCode
-): Promise<void> {
+): Promise<TaggingOutcome> {
   const supabase = createAdminClient();
 
   try {
@@ -198,6 +209,8 @@ export async function runTaggingPipeline(
     if (error) {
       throw error;
     }
+
+    return { status, ai_niche, niche_hint_mismatch };
   } catch (err) {
     console.error(`AI 태깅 실패 (postId=${postId}):`, err);
     // system_error로 표시 + retry_count 증가. 실제 재시도 실행(백그라운드 큐)은 4주차 별도 작업 —
@@ -205,5 +218,7 @@ export async function runTaggingPipeline(
     const { data: current } = await supabase.from('posts').select('retry_count').eq('id', postId).single();
     const nextRetryCount = Math.min((current?.retry_count ?? 0) + 1, 3);
     await supabase.from('posts').update({ status: 'system_error', retry_count: nextRetryCount }).eq('id', postId);
+
+    return { status: 'system_error', ai_niche: null, niche_hint_mismatch: null };
   }
 }

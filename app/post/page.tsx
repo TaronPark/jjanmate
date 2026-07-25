@@ -33,7 +33,16 @@ function PostContent() {
       setPosting(false);
       return;
     }
-    router.push(`/feed/${niche}`);
+
+    // 게시 후 상태 피드백(2026-07-25): 성공 + 재분류(niche_hint_mismatch)면 실제 분류된
+    // 니치 룸으로 자동 이동 + 안내 배너. 그 외(성공+일치, low_confidence, system_error, pending)는
+    // 전부 원래 있던 룸으로 보낸다 — 에러/저신뢰/대기 상태는 그 룸의 피드 쿼리가 "본인 글이면
+    // ai_niche가 null이어도 포함"하도록 확장돼 있어 상태 카드로 계속 보인다(유령 게시물 방지).
+    if (result.status === 'success' && result.ai_niche && result.niche_hint_mismatch) {
+      router.push(`/feed/${result.ai_niche}?notice=reclassified`);
+    } else {
+      router.push(`/feed/${niche}`);
+    }
   };
 
   if (posting) {

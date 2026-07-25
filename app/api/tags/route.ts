@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '프로필 정보를 확인할 수 없습니다.' }, { status: 400 });
   }
 
-  await runTaggingPipeline(post.id, post.content, onboardingNiche);
+  const outcome = await runTaggingPipeline(post.id, post.content, onboardingNiche);
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, ...outcome });
 }
