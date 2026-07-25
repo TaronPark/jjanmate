@@ -29,3 +29,40 @@ export function getTodayKst(): string {
 export function getYesterdayKst(): string {
   return getKstDateString(-1);
 }
+
+/**
+ * 현재 KST 기준 "시(hour, 0~23)"를 반환한다.
+ * 2026-07-25 (시드 콘텐츠 드립 크론) 추가 — 시간대별 발행 비중 계산에 사용.
+ * getUTCHours()를 쓰는 이유는 getKstDateString과 동일: KST_OFFSET_MS를 더한 뒤
+ * "UTC 접근자"로 읽어야 서버 실행 환경의 로컬 타임존과 무관하게 항상 KST 기준 값이 나온다
+ * (Vercel은 기본 UTC라 지금은 결과가 같지만, 로컬 개발 환경 등 다른 타임존에서 실행돼도 안전하도록).
+ */
+export function getKstHour(): number {
+  const kstNow = new Date(Date.now() + KST_OFFSET_MS);
+  return kstNow.getUTCHours();
+}
+
+/**
+ * launchDateKst('YYYY-MM-DD', KST 기준 날짜)로부터 오늘까지 "런칭 몇 일차"인지 계산한다.
+ * 2026-07-25 (시드 콘텐츠 드립 크론, 테이퍼링 로직) 추가.
+ *
+ * 반드시 달력 날짜(day) 단위로 diff해야 한다 — new Date() 밀리초 차를 그대로 나누면
+ * 시각에 따라 하루가 밀리는 오차가 생길 수 있다(운영 스팟체크 쿼리에서 잡았던 것과 같은 종류의
+ * 버그). 두 날짜 문자열을 각각 UTC 자정 기준 타임스탬프로 파싱해 순수하게 "날짜 개수" 차이만
+ * 계산한다(한국은 DST가 없어 이 방식이 항상 안전함).
+ *
+ * 런칭일 당일을 "1일차"로 취급(daysSinceLaunch=1). 아직 런칭 전(diff가 음수)이거나 런칭
+ * 당일이면 1로 clamp — 배포 직후 런칭 전 테스트 트리거에서도 Phase 1 로직이 그대로 동작하게 함.
+ */
+export function getKstDaysSinceLaunch(launchDateKst: string): number {
+  const toUtcMs = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return Date.UTC(year, month - 1, day);
+  };
+
+  const launchMs = toUtcMs(launchDateKst);
+  const todayMs = toUtcMs(getTodayKst());
+  const dayDiff = Math.round((todayMs - launchMs) / (24 * 60 * 60 * 1000));
+
+  return Math.max(1, dayDiff + 1);
+}
