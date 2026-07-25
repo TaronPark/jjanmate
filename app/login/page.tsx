@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import type { NicheCode } from '@/lib/niches';
 
 // 4-A 4번: 소셜 로그인. 카카오 단일(MVP 범위, 2026-07-21 확정).
@@ -11,19 +11,21 @@ import type { NicheCode } from '@/lib/niches';
 // 동작 전제조건(코드 밖 설정, 사람이 직접 해야 함):
 //   1) 카카오 개발자 콘솔(developers.kakao.com)에 앱 등록 + REST API Key/Client Secret 발급
 //   2) Supabase 대시보드 > Authentication > Providers > Kakao 활성화 + 위 키 입력
-// niche는 preview -> login -> nickname -> post로 쿼리파라미터를 이어받아, 온보딩 완료 후
-// 원래 선택했던 룸의 게시 화면으로 바로 돌아가도록 함.
-// 2026-07-25: 로그인 직후 바로 /post가 아니라 /nickname(자체 닉네임 입력)으로 이동하도록 변경 —
-// 카카오 닉네임/프로필사진을 가져오지 않기로 했기 때문(자세한 판단 근거는 app/nickname 참고).
+// 2026-07-25 SSR 구조 개편: redirectTo를 /nickname으로 직접 보내지 않고 /auth/callback으로
+// 보냄 — 콜백 라우트가 인가 코드를 세션(쿠키)으로 교환한 뒤, 신규/재방문 유저를 각각
+// /nickname 또는 본인 홈룸 피드로 분기함(app/auth/callback/route.ts 참고).
+// niche 쿼리파라미터는 preview -> login -> callback으로 이어지며, 신규 유저의 경우
+// 콜백에서 그대로 /nickname?niche=...로 전달됨.
 function LoginContent() {
   const params = useSearchParams();
   const niche = (params.get('niche') as NicheCode) || 'monthly_rent_fighter';
 
   const handleKakaoLogin = async () => {
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
-        redirectTo: `${window.location.origin}/nickname?niche=${niche}`,
+        redirectTo: `${window.location.origin}/auth/callback?niche=${niche}`,
       },
     });
     if (error) {
