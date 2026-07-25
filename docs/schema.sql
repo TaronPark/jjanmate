@@ -3,15 +3,17 @@
 -- 대상: Supabase (PostgreSQL)
 -- 설계 근거: 짠메이트_DB설계_ERD.md 참고
 -- 작성일: 2026-07-20 / 갱신일: 2026-07-25
---   2026-07-21: reactions 테이블 추가 (아직 실제 Supabase 프로젝트 미적용)
+--   2026-07-21: reactions 테이블 추가 (당시 아직 실제 Supabase 프로젝트 미적용)
 --   2026-07-24: 니치 전면 개편(생애주기→소비 페인포인트)에 따라 CHECK 제약값 교체
 --     (self_catering/low_income_worker/no_spend_challenge →
 --      monthly_rent_fighter/impulse_expense_defender/lurker_lounge)
---     실 데이터 0건 시점이라 이 파일은 바로 교체했으나, 실제 Supabase 프로젝트는
---     기존 값으로 이미 적용돼 있어 ALTER TABLE ... DROP CONSTRAINT / ADD CONSTRAINT로
---     별도 마이그레이션 필요 (1~2주차 DB 작업 시 reactions 테이블과 함께 반영 예정)
 --   2026-07-25: nickname 컬럼 코멘트 추가 — 카카오 닉네임이 아니라 로그인 직후 유저가
 --     직접 입력한 값을 저장하기로 결정 (컬럼 타입/제약조건 자체는 변경 없음)
+--   2026-07-25: 실제 Supabase 프로젝트에 마이그레이션 적용 완료 —
+--     profiles/posts/matching_previews 3개 테이블 CHECK 제약조건을 신규 니치 코드로 교체,
+--     reactions 테이블 신규 생성, 4개 테이블 RLS 정책 적용까지 모두 반영됨
+--     (마이그레이션명: niche_migration_reactions_table_rls_policies).
+--     이제 이 schema.sql은 실제 DB 상태와 일치함.
 -- ============================================================
 
 -- uuid 자동생성 함수 확장 (Supabase는 기본 활성화된 경우가 많지만 명시)
@@ -124,10 +126,22 @@ comment on table public.reactions is '게시글에 대한 원클릭 공감 반�
 create index idx_reactions_post on public.reactions (post_id);
 
 -- ============================================================
--- 참고: Row Level Security(RLS)는 이 파일에서 다루지 않음.
--- profiles/posts/matching_previews 3개 테이블은 이미 실제 Supabase 프로젝트에
--- RLS ON 상태로 적용되어 있으나 접근 정책(policy)은 비어있음 (미완료 항목).
--- reactions 테이블은 아직 실제 프로젝트에 미적용 — 1~2주차 로그인 구현 때
--- 나머지 3개 테이블 정책 설계와 함께 반영 필요
--- (예: "반응은 본인이 남긴 것만 취소 가능", "누구나 읽기는 가능").
+-- Row Level Security(RLS) — 2026-07-25 실제 Supabase 프로젝트에 적용 완료
+-- (마이그레이션명: niche_migration_reactions_table_rls_policies)
+-- 4개 테이블 모두 RLS ON + 아래 정책 적용. 명시되지 않은 동작(예: posts UPDATE)은
+-- 정책을 만들지 않아 RLS 기본 거부(Deny)가 그대로 유지됨.
+--
+-- [profiles] insert: 본인 id로만 생성(authenticated) / select: 전체 공개(public)
+--            / update: 본인만(authenticated) — 주의: current_streak 등 통계 필드의
+--            클라이언트 직접 조작 방지는 컬럼 단위로 막지 않았음. 4주차 스트릭 로직 구현 시
+--            백엔드(Edge Function 등) 단에서 별도 통제 필요.
+-- [posts]    insert: 본인 user_id로만 생성(authenticated)
+--            / select: status='success' AND is_spam=false 는 누구나(public), 작성자 본인은
+--            상태 무관 항상 조회 가능 / delete: 작성자 본인만(authenticated)
+--            / update: 정책 없음(의도적) — MVP에 게시글 수정 기능이 없고, status/ai_niche/
+--            is_spam 등 AI 파이프라인 전용 필드를 유저가 직접 조작(스팸 필터 우회)하는 것을
+--            막기 위해 UPDATE는 전부 차단
+-- [matching_previews] select: 전체 공개(public) / insert·update·delete: 정책 없음
+--            (배치 갱신 스크립트는 service_role 키로 RLS 우회)
+-- [reactions] insert·delete: 본인 반응만(authenticated) / select: 전체 공개(public)
 -- ============================================================
