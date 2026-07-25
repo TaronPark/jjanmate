@@ -48,6 +48,7 @@
 | 주간 랭킹 + 랭킹 노출 여부 토글 UI | 5, 11 |
 | 백그라운드 재시도 큐 구축 (system_error, 최대 3회) | 6, 9 |
 | **완료 (2026-07-25)**: 원클릭 공감 리액션 기능 — `app/feed/actions.ts`의 `toggleReaction()`(select-then-insert/delete, DB unique 제약으로 race 방어), 피드 쿼리에 `reactions(reaction_type, user_id)` nested select로 카운트/본인 반응여부 계산, `app/feed/[niche]/ReactionButtons.tsx`(클라이언트 컴포넌트, useTransition 낙관적 업데이트, 비회원 클릭 시 confirm 후 `/login` 이동, 활성 상태 스타일+카운트 표기) | 5, 6 (2026-07-21 Must 승격, 신규 추가) |
+| **완료 (2026-07-25)**: 비회원 피드 진입점 + 로그아웃 버튼 — `app/login/page.tsx` 하단에 "로그인 없이 먼저 구경하기" 링크(→ `/feed/lurker_lounge`)로 기획서 5번 Must "비회원 피드 열람" 충족. `components/LogoutButton.tsx`(신규 최초의 공용 컴포넌트 디렉토리) 신설, 피드 헤더 우측(로그인 시에만)에 배치 — 전역 레이아웃은 건드리지 않아 랜딩/프리뷰/약관 등 하드코딩 유지 페이지에 영향 없음 | 5 |
 | 스팸 격리 건 확인용 경량 DB 조회 스크립트 (별도 관리 백엔드 없이 운영진 직접 조회) | 9, 10 |
 
 ## 5주차

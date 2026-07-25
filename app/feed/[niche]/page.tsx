@@ -3,6 +3,7 @@ import { NICHES, type NicheCode } from '@/lib/niches';
 import { createClient } from '@/lib/supabase/server';
 import { getTodayKst, getYesterdayKst } from '@/lib/date';
 import ReactionButtons from './ReactionButtons';
+import LogoutButton from '@/components/LogoutButton';
 
 // 4-B 재방문 루프 + 2026-07-21 검토 반영: 룸 타이틀/스트릭 상시노출, 상단 상태카드,
 // #전체 포함 서브태그 가로스크롤, 원클릭 공감 리액션(cheer/me_too).
@@ -85,12 +86,16 @@ export default async function FeedPage({
     <main>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <strong>{niche.roomName}</strong>
-        {/* 로그인 유저이면서 유효 스트릭이 1 이상일 때만 배지 노출 — 비회원은 애초에 배지 없음,
-            로그인했지만 스트릭 0(가입 직후/끊김)인 경우도 "🔥 0일 연속"처럼 어색하게 보이지
-            않도록 숨김(2026-07-25 결정) */}
-        {user && effectiveStreak > 0 && (
-          <span style={{ fontSize: 12, color: '#555' }}>🔥 {effectiveStreak}일 연속</span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* 로그인 유저이면서 유효 스트릭이 1 이상일 때만 배지 노출 — 비회원은 애초에 배지 없음,
+              로그인했지만 스트릭 0(가입 직후/끊김)인 경우도 "🔥 0일 연속"처럼 어색하게 보이지
+              않도록 숨김(2026-07-25 결정) */}
+          {user && effectiveStreak > 0 && (
+            <span style={{ fontSize: 12, color: '#555' }}>🔥 {effectiveStreak}일 연속</span>
+          )}
+          {/* 로그인 상태일 때만 로그아웃 버튼 노출(비회원 열람 화면엔 의미 없는 버튼이라 숨김) */}
+          {user && <LogoutButton />}
+        </div>
       </div>
 
       {notice === 'reclassified' && (

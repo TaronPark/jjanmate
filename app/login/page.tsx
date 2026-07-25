@@ -44,6 +44,12 @@ function LoginContent() {
         계속 진행 시 <Link href="/terms">이용약관</Link> 및 <Link href="/privacy">개인정보처리방침</Link>에 동의하게 됩니다.
         {/* 2026-07-25: 두 문서 모두 초안(법률 검토 전) 상태 — docs/짠메이트_이용약관.md, docs/짠메이트_개인정보처리방침.md 참고 */}
       </p>
+      {/* 2026-07-25: 비회원 피드 진입점(기획서 5번 Must "비회원 피드 열람"). 진입장벽이 가장
+          낮은 눈팅러 대기실로 보냄 — 아직 이 니치로 분류된 글이 적어 당장은 빈 피드로 보일 수
+          있으나(정상, 데이터 양 문제), 니치 자체가 "대기실" 컨셉이라 의미상으로도 맞는 선택. */}
+      <p style={{ fontSize: 11, textAlign: 'center', marginTop: 16 }}>
+        <Link href="/feed/lurker_lounge">로그인 없이 먼저 구경하기</Link>
+      </p>
     </main>
   );
 }
