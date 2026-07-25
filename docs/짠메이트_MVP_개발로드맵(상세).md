@@ -35,6 +35,7 @@
 | **완료 (2026-07-25)**: 프롬프트 인젝션 방어 설계 반영 (`<user_post>` 구분자 격리, 유저 입력=데이터 명시, 지시문 무시 규칙 포함) | 11 |
 | **완료 (2026-07-25)**: status 분기 처리 및 격리 로그(spam_reason 포함) 저장 — `app/api/tags/route.ts`(postId만 받아 서버가 직접 재조회, RLS로 본인 글만 허용) + `lib/supabase/admin.ts`(service_role, posts UPDATE 전용 통로) + `app/post/actions.ts` 연동 | 6, 9 |
 | **완료 (2026-07-25, 게시 흐름 연동)**: 게시 직후 `createPost` 안에서 태깅을 동기 실행해 "AI가 읽는 중..." 전환 화면과 실제 처리 시간이 맞물리도록 함(4-C Labor Illusion 유지). **남은 작업**: system_error 배너 UI(피드/게시 화면에 실패 상태 노출)는 아직 미구현 | 4-A, 4-C |
+| **실제 검증 완료 (2026-07-25)**: 라이브 Vercel 배포본에서 실제 게시글로 E2E 테스트 — "라면 소분해서 부대찌개 2인분으로 늘려 먹기"(냉장고 활용) 글이 식비 하드룰대로 `ai_niche='monthly_rent_fighter'`, `subtags=['냉장고파먹기']`, `confidence=0.850`, `status='success'`, `niche_hint_mismatch=false`로 정확히 분류되어 해당 니치 피드에 즉시 노출됨을 DB 조회로 확인 | 6 |
 | **남은 작업**: `retry_count` 기반 실제 재시도 실행(백그라운드 큐)은 4주차 항목으로 유지 — 이번 작업은 system_error 시 상태·카운트만 정확히 기록 | 6, 9 |
 | 매칭 프리뷰 배치(Cron) 스크립트 구현 (닉네임 마스킹, 니치별 CTA 문구 분기 포함) | 5, 9 |
 
