@@ -45,8 +45,8 @@
 |---|---|
 | **완료 (2026-07-25)**: 스트릭 카운트 로직 — `lib/streak.ts`의 `updateStreakOnPost()`(service_role). KST(UTC+9) 기준으로 오늘/어제/그외 3분기 처리, `longest_streak = max(...)` 공식 통일, 실패해도 게시 흐름을 막지 않도록 내부 try/catch. 이 작업의 전제로 `profiles_update_own` RLS 정책을 완전히 제거(클라이언트의 통계 필드 직접 조작 차단, 마이그레이션명: `drop_profiles_update_own_for_streak_integrity`) | 5 |
 | **완료 (2026-07-25)**: 피드 상단 고정 상태 카드 구현 — `app/feed/[niche]/page.tsx`에서 비회원(로그인 유도 CTA)/로그인+오늘 게시함(스트릭 축하)/로그인+오늘 미게시(글쓰기 CTA) 3분기, 헤더 🔥 배지는 "유효 스트릭"을 화면에서 파생 계산(DB 값을 그대로 안 믿고 `last_post_date`가 오늘/어제 KST가 아니면 0으로 보정 — 별도 자정 초기화 배치 없이 항상 정확) | 4-B |
-| 주간 랭킹 + 랭킹 노출 여부 토글 UI | 5, 11 |
-| 백그라운드 재시도 큐 구축 (system_error, 최대 3회) | 6, 9 |
+| 주간 랭킹 + 랭킹 노출 여부 토글 UI (**보류, Should로 후순위 조정 — 2026-07-25**: DB 스키마(`weekly_rankings`, `ranking_visible` 토글)가 ERD 설계 당시 의도적으로 제외됨. 5주차 소프트 런칭을 앞두고 신규 스키마 설계까지 벌이는 건 일정 리스크가 커서 백로그로 이동) | 5, 11 |
+| **완료 (2026-07-25)**: 백그라운드 재시도 큐 구축 — `app/api/cron/retry/route.ts`(Vercel Cron, `CRON_SECRET` 인증, `maxDuration=60`), `status='system_error' AND retry_count<3` 조건으로 최대 20건 배치 조회 후 `lib/ai/classifyPost.ts`의 `runTaggingPipeline`을 그대로 재호출(중복 구현 없이 성공/저신뢰/재실패 3분기 재사용 — 성공·저신뢰로 전환되면 status가 바뀌어 자동으로 큐에서 제외됨, 3회 소진 시 system_error로 남아 수동 검토 대상). `vercel.json` 신규(Hobby 플랜 제약상 하루 1회, `0 19 * * *` UTC = KST 새벽 4시) | 6, 9 |
 | **완료 (2026-07-25)**: 원클릭 공감 리액션 기능 — `app/feed/actions.ts`의 `toggleReaction()`(select-then-insert/delete, DB unique 제약으로 race 방어), 피드 쿼리에 `reactions(reaction_type, user_id)` nested select로 카운트/본인 반응여부 계산, `app/feed/[niche]/ReactionButtons.tsx`(클라이언트 컴포넌트, useTransition 낙관적 업데이트, 비회원 클릭 시 confirm 후 `/login` 이동, 활성 상태 스타일+카운트 표기) | 5, 6 (2026-07-21 Must 승격, 신규 추가) |
 | **완료 (2026-07-25)**: 비회원 피드 진입점 + 로그아웃 버튼 — `app/login/page.tsx` 하단에 "로그인 없이 먼저 구경하기" 링크(→ `/feed/lurker_lounge`)로 기획서 5번 Must "비회원 피드 열람" 충족. `components/LogoutButton.tsx`(신규 최초의 공용 컴포넌트 디렉토리) 신설, 피드 헤더 우측(로그인 시에만)에 배치 — 전역 레이아웃은 건드리지 않아 랜딩/프리뷰/약관 등 하드코딩 유지 페이지에 영향 없음 | 5 |
 | 스팸 격리 건 확인용 경량 DB 조회 스크립트 (별도 관리 백엔드 없이 운영진 직접 조회) | 9, 10 |
