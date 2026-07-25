@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": ">=0.30.0 <1.0.0",
+    "browser-image-compression": "^2.0.2",
     "@supabase/supabase-js": "^2.106.1",
     "@supabase/ssr": "^0.10.3",
     "next": "^16.2.11",

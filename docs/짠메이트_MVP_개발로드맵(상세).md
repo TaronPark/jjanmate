@@ -1,6 +1,6 @@
 # 짠메이트 MVP 개발로드맵 (상세)
 
-> 작성일: 2026-07-19 / 갱신일: 2026-07-25 (런칭 니치 전면 개편 + 자체 닉네임 입력 플로우 + 1~4주차 CRUD·SSR 인증 구조·AI 태깅·스트릭·리액션·재시도 큐 구현 + Vercel 플랜 업그레이드 재검토 게이트 반영)
+> 작성일: 2026-07-19 / 갱신일: 2026-07-25 (런칭 니치 전면 개편 + 자체 닉네임 입력 플로우 + 1~4주차 CRUD·SSR 인증 구조·AI 태깅·스트릭·리액션·재시도 큐·이미지 첨부 구현 + Vercel 플랜 업그레이드 재검토 게이트 반영)
 > 본 문서는 「짠메이트 MVP 기획서」의 실행을 위한 시간순 작업 목록입니다. 전략·기능 정의는 기획서를 따르며, 본 문서는 그 실행 산출물과 순서만 다룹니다. 각 작업은 기획서의 관련 섹션과 연결됩니다.
 
 ## 0단계: 개발 착수 전 준비
@@ -21,10 +21,10 @@
 | **완료 (2026-07-25)**: DB 테이블 실제 생성 — `reactions` 테이블 신규 생성, profiles/posts/matching_previews 3개 테이블 니치 CHECK 제약조건을 2026-07-24 개편값(monthly_rent_fighter 등)으로 ALTER 마이그레이션, 4개 테이블 RLS 활성화 및 정책 적용까지 모두 완료(ERD 5-1, schema.sql 참고) | 5, 7 |
 | **완료 (2026-07-21 초기 연동 / 2026-07-25 SSR 구조로 전면 개편)**: 카카오 단일 소셜 로그인 구현 — 세션을 쿠키 기반(`@supabase/ssr`)으로 전환, `middleware.ts` 세션 갱신, `app/auth/callback/route.ts`에서 인가코드 교환 + 신규/재방문 유저 분기(프로필 유무로 `/nickname` 또는 본인 홈룸 피드) | 5, 7 |
 | **완료 (2026-07-25)**: 짠메이트 전용 닉네임 직접 입력 화면 실연동 — `app/nickname/actions.ts` Server Action으로 `profiles.nickname` upsert, 재방문 유저는 콜백 라우트 단계에서 이미 걸러져 이 화면 자체에 도달하지 않음(스킵 분기 완료). 카카오 닉네임/프로필사진 미사용 결정에 따름 | 4-A, 5 |
-| **완료 (2026-07-25, 텍스트만)**: 게시 CRUD — `app/post/actions.ts` Server Action으로 `posts` insert, 300자 제한은 서버·DB 양쪽에서 검증. status/ai_niche 등 AI 판단 필드는 클라이언트가 절대 넘기지 않고 DB 기본값(pending/null) 유지. **이미지 첨부(Storage 업로드)는 이번 범위에서 제외 — 별도 작업으로 남음** | 5, 6, 11 |
+| **완료 (2026-07-25)**: 게시 CRUD — `app/post/actions.ts` Server Action으로 `posts` insert, 300자 제한은 서버·DB 양쪽에서 검증. status/ai_niche 등 AI 판단 필드는 클라이언트가 절대 넘기지 않고 DB 기본값(pending/null) 유지 | 5, 6, 11 |
 | **완료 (2026-07-25)**: 니치별 피드 실데이터 조회 — `app/feed/[niche]`를 Server Component로 전환해 `posts`+`profiles` join 조회. RLS가 `status='success' AND is_spam=false` 또는 본인 글만 자동으로 걸러주므로 쿼리는 니치 필터만 명시. 비회원(anon 세션)도 동일 쿼리로 동작해 "비회원 피드 열람" 요건도 함께 충족. **단, 3주차 AI 태깅 전까지는 `ai_niche`가 항상 null이라 실제로는 피드가 비어보임(정상 상태, 버그 아님)** | 5 |
 | 온보딩 니치 선택 화면 구현 (UI 완료, DB 연동은 닉네임 저장 시점에 함께 처리됨) | 4-A, 5 |
-| **남은 작업**: 게시글 이미지 첨부(Supabase Storage 버킷 생성 + 업로드 연동) — 5번 Must "사진 첨부 선택"의 나머지 절반, 2026-07-25 CRUD 작업에서 텍스트만 우선 처리하며 의도적으로 이번 범위 제외 | 5 |
+| **완료 (2026-07-25)**: 게시글 이미지 첨부(Supabase Storage 연동) — `post_images` 버킷(공개, `file_size_limit=5MB`, `allowed_mime_types=image/*`) + RLS(`storage.foldername(name)` 기반 폴더 스코프 INSERT, `owner` 기반 UPDATE/DELETE, 불필요한 SELECT 정책은 `get_advisors` 지적으로 제거해 버킷 오브젝트 나열 방지). 클라이언트에서 `browser-image-compression`으로 선택 즉시 리사이즈(긴 변 1600px)·압축(품질 0.8)·EXIF 회전 보정 후 업로드, `app/post/actions.ts`의 `createPost`가 저장 전 `image_url`이 실제 이 버킷의 공개 URL 패턴으로 시작하는지 서버에서 검증(임의 외부 URL 저장 차단). 피드 카드는 `next/image` 대신 기본 `<img>` 태그로 렌더링(Vercel 이미지 최적화 한도 초과 방지 목적), `object-fit: cover`·`max-height`·`border-radius`로 레이아웃 방어 | 5 |
 
 ## 3주차
 

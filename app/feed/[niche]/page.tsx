@@ -40,7 +40,7 @@ export default async function FeedPage({
   // reactions_select_all이 전체 공개 정책이라 이 방식으로 문제 없음.
   const baseQuery = supabase
     .from('posts')
-    .select('id, content, created_at, ai_niche, status, user_id, profiles(nickname), reactions(reaction_type, user_id)')
+    .select('id, content, image_url, created_at, ai_niche, status, user_id, profiles(nickname), reactions(reaction_type, user_id)')
     .order('created_at', { ascending: false });
 
   // 로그인 상태면 "이 룸에 맞는 글 OR 내가 쓴 미분류/에러 글"까지, 비로그인(비회원 열람)이면
@@ -158,6 +158,16 @@ export default async function FeedPage({
                 </span>
               )}
               <p style={{ fontSize: 13, margin: '0 0 6px' }}>{post.content}</p>
+              {post.image_url && (
+                // next/image 대신 기본 <img> 사용(2026-07-25 결정) — Vercel 이미지 최적화
+                // 한도(월 1000장, Hobby 플랜) 초과를 피하기 위함. object-fit/max-height로
+                // 카드 레이아웃이 깨지지 않게만 방어.
+                <img
+                  src={post.image_url}
+                  alt="첨부 이미지"
+                  style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 8, marginBottom: 6 }}
+                />
+              )}
               <p style={{ fontSize: 11, color: '#888', margin: '0 0 8px' }}>
                 {(post.profiles as unknown as { nickname: string } | null)?.nickname ?? '익명'} ·{' '}
                 {new Date(post.created_at).toLocaleString('ko-KR')}

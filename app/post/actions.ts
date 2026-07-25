@@ -19,6 +19,16 @@ export interface CreatePostResult {
   niche_hint_mismatch: boolean | null;
 }
 
+// 게시글 이미지의 공개 URL은 반드시 우리 post_images 버킷에서 나온 값이어야 함(2026-07-25).
+// 클라이언트가 이 값을 검증 없이 넘긴 그대로 저장하면, 악의적 유저가 우리 Storage를 거치지
+// 않고 임의의 외부 URL(유해/불법 콘텐츠 등)을 넣어 다른 유저 피드에 그대로 노출시킬 수 있음 —
+// AI 필드/스트릭 필드에 적용해온 "클라이언트가 신뢰 못 할 값은 서버가 검증" 원칙과 동일하게,
+// 이 URL이 실제로 그 버킷 경로로 시작하는지 검증하고 아니면 거부한다.
+function isValidPostImageUrl(url: string): boolean {
+  const expectedPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post_images/`;
+  return url.startsWith(expectedPrefix);
+}
+
 // 지출/지출 방어 기록을 posts에 insert.
 // status, ai_niche, is_spam, confidence 등 AI가 판단할 필드는 절대 넘기지 않음 —
 // DB 기본값(status='pending', ai_niche=null, is_spam=false)이 그대로 적용되도록 둠.
@@ -32,13 +42,25 @@ export interface CreatePostResult {
 // 실제 처리 시간이 1.2초보다 길면 그만큼 더 보여지고, 짧으면 1.2초까지 채워짐.
 // 분류 자체가 실패해도 게시글은 이미 저장된 상태이므로 에러를 삼키지 않고 그대로 진행—
 // 실패 시 상태는 runTaggingPipeline 내부에서 status='system_error'로 이미 기록됨.
-export async function createPost(content: string): Promise<CreatePostResult> {
+//
+// imageUrl(2026-07-25 추가): 브라우저에서 browser-image-compression으로 압축한 뒤
+// Storage(post_images 버킷)에 이미 업로드까지 마친 상태로 이 액션에 도달함 — 여기서는
+// 업로드를 하지 않고 URL 검증 후 저장만 한다.
+export async function createPost(content: string, imageUrl?: string | null): Promise<CreatePostResult> {
   const trimmed = content.trim();
   if (!trimmed) {
     return { error: '내용을 입력해주세요.', ai_niche: null, status: null, niche_hint_mismatch: null };
   }
   if (trimmed.length > 300) {
     return { error: '300자 이내로 입력해주세요.', ai_niche: null, status: null, niche_hint_mismatch: null };
+  }
+
+  let validatedImageUrl: string | null = null;
+  if (imageUrl) {
+    if (!isValidPostImageUrl(imageUrl)) {
+      return { error: '잘못된 이미지 URL입니다.', ai_niche: null, status: null, niche_hint_mismatch: null };
+    }
+    validatedImageUrl = imageUrl;
   }
 
   const supabase = await createClient();
@@ -52,7 +74,7 @@ export async function createPost(content: string): Promise<CreatePostResult> {
 
   const { data: post, error } = await supabase
     .from('posts')
-    .insert({ user_id: user.id, content: trimmed })
+    .insert({ user_id: user.id, content: trimmed, image_url: validatedImageUrl })
     .select('id')
     .single();
 
