@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { runTaggingPipeline, type TaggingOutcome } from '@/lib/ai/classifyPost';
+import { updateStreakOnPost } from '@/lib/streak';
 
 export interface CreatePostResult {
   error: string | null;
@@ -63,6 +64,11 @@ export async function createPost(content: string): Promise<CreatePostResult> {
       niche_hint_mismatch: null,
     };
   }
+
+  // insert가 성공한 시점에 스트릭을 갱신한다 — AI 분류 결과(성공/저신뢰/에러)와 무관하게
+  // "게시 자체"에 대해 인정(4-B 핵심 리텐션 루프). 실패해도 게시 흐름을 막지 않도록
+  // updateStreakOnPost 내부에서 이미 에러를 삼키므로 여기서는 await만 한다.
+  await updateStreakOnPost(user.id);
 
   const { data: profile } = await supabase
     .from('profiles')

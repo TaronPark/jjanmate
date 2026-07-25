@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { NICHES, type NicheCode } from '@/lib/niches';
 import { createClient } from '@/lib/supabase/server';
+import { getTodayKst, getYesterdayKst } from '@/lib/date';
 
 // 4-B 재방문 루프 + 2026-07-21 검토 반영: 룸 타이틀/스트릭 상시노출, 상단 상태카드,
 // #전체 포함 서브태그 가로스크롤, 원클릭 공감 리액션(cheer/me_too).
@@ -48,6 +49,25 @@ export default async function FeedPage({
     console.error('피드 조회 실패:', error.message);
   }
 
+  // 4주차 스트릭: 로그인 유저의 profiles(current_streak, last_post_date)를 함께 조회해서
+  // "유효 스트릭"을 화면에서 파생 계산한다. DB의 current_streak을 그대로 믿지 않는 이유 —
+  // 이 값은 유저가 "다음 글을 쓸 때"만 갱신되므로(lib/streak.ts), 스트릭이 끊긴 뒤 다시
+  // 글을 쓰기 전까지는 예전 값이 그대로 남아있음. last_post_date가 오늘/어제(KST)가 아니면
+  // 화면에는 무조건 0으로 보정 — 이렇게 하면 매일 자정 스트릭을 초기화하는 별도 배치(cron) 없이도
+  // 항상 정확한 값을 보여줄 수 있음(2026-07-25 논의).
+  const today = getTodayKst();
+  const yesterday = getYesterdayKst();
+
+  const { data: profile } = user
+    ? await supabase.from('profiles').select('current_streak, last_post_date').eq('id', user.id).single()
+    : { data: null };
+
+  const postedToday = profile?.last_post_date === today;
+  const effectiveStreak =
+    profile && (profile.last_post_date === today || profile.last_post_date === yesterday)
+      ? profile.current_streak
+      : 0;
+
   // 본인 글인데 아직 정상 분류가 안 된 경우(pending/low_confidence/system_error) 보여줄 안내 문구.
   // 재시도 버튼은 두지 않음 — low_confidence는 기획서상 재시도 대상이 아니고, system_error는
   // 4주차 백그라운드 큐가 처리할 몫이라 유저가 직접 트리거하지 않게 함(2026-07-25 결정).
@@ -61,7 +81,12 @@ export default async function FeedPage({
     <main>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <strong>{niche.roomName}</strong>
-        <span style={{ fontSize: 12, color: '#555' }}>🔥 3일 연속</span>
+        {/* 로그인 유저이면서 유효 스트릭이 1 이상일 때만 배지 노출 — 비회원은 애초에 배지 없음,
+            로그인했지만 스트릭 0(가입 직후/끊김)인 경우도 "🔥 0일 연속"처럼 어색하게 보이지
+            않도록 숨김(2026-07-25 결정) */}
+        {user && effectiveStreak > 0 && (
+          <span style={{ fontSize: 12, color: '#555' }}>🔥 {effectiveStreak}일 연속</span>
+        )}
       </div>
 
       {notice === 'reclassified' && (
@@ -74,12 +99,26 @@ export default async function FeedPage({
         </div>
       )}
 
-      <div className="card" style={{ background: '#e6f1fb' }}>
-        <p style={{ fontSize: 12, margin: '0 0 8px' }}>오늘 지출을 아직 기록하지 않았어요!</p>
-        <Link href={`/post?niche=${nicheParam}`}>
-          <button style={{ width: '100%' }}>오늘의 절약 기록하기</button>
-        </Link>
-      </div>
+      {/* 상단 상태 카드 3분기(2026-07-25): 비회원/로그인+오늘 게시함/로그인+오늘 미게시 */}
+      {!user ? (
+        <div className="card" style={{ background: '#e6f1fb' }}>
+          <p style={{ fontSize: 12, margin: '0 0 8px' }}>로그인하고 동료들과 절약을 시작해보세요!</p>
+          <Link href={`/login?niche=${nicheParam}`}>
+            <button style={{ width: '100%' }}>로그인하기</button>
+          </Link>
+        </div>
+      ) : postedToday ? (
+        <div className="card" style={{ background: '#e6f1fb' }}>
+          <p style={{ fontSize: 12, margin: 0 }}>오늘 지출 인증 완료! (스트릭 {effectiveStreak}일차)</p>
+        </div>
+      ) : (
+        <div className="card" style={{ background: '#e6f1fb' }}>
+          <p style={{ fontSize: 12, margin: '0 0 8px' }}>오늘 지출을 아직 기록하지 않았어요!</p>
+          <Link href={`/post?niche=${nicheParam}`}>
+            <button style={{ width: '100%' }}>오늘의 절약 기록하기</button>
+          </Link>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12 }}>
         <span className="chip">#전체</span>
