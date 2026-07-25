@@ -93,6 +93,14 @@ export default async function FeedPage({
           {user && effectiveStreak > 0 && (
             <span style={{ fontSize: 12, color: '#555' }}>🔥 {effectiveStreak}일 연속</span>
           )}
+          {/* 2026-07-25 추가: 상단 상태 카드의 "게시하기" 버튼은 postedToday=true면 사라지는데,
+              게시글 자체(createPost)는 하루 여러 번 허용되므로(스트릭 증가만 1일 1회 캡) 이미
+              오늘 글을 쓴 뒤에도 /post로 갈 방법이 있어야 함 — 헤더에 상시 노출되는 버튼으로 보완 */}
+          {user && (
+            <Link href={`/post?niche=${nicheParam}`}>
+              <button style={{ fontSize: 12, padding: '4px 10px' }}>글쓰기</button>
+            </Link>
+          )}
           {/* 로그인 상태일 때만 로그아웃 버튼 노출(비회원 열람 화면엔 의미 없는 버튼이라 숨김) */}
           {user && <LogoutButton />}
         </div>
