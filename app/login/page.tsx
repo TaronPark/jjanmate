@@ -1,11 +1,30 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import type { NicheCode } from '@/lib/niches';
+
 // 4-A 4번: 소셜 로그인. 카카오 단일(MVP 범위, 2026-07-21 확정).
-// TODO(1~2주차): 카카오 개발자 콘솔에 앱 등록 후, Supabase Auth의 Kakao Provider를 켜고
-// supabase.auth.signInWithOAuth({ provider: 'kakao' })로 교체
+// 2026-07-25: 실제 Supabase Kakao Provider OAuth 호출로 교체.
+// 동작 전제조건(코드 밖 설정, 사람이 직접 해야 함):
+//   1) 카카오 개발자 콘솔(developers.kakao.com)에 앱 등록 + REST API Key/Client Secret 발급
+//   2) Supabase 대시보드 > Authentication > Providers > Kakao 활성화 + 위 키 입력
+// niche는 preview -> login -> post로 쿼리파라미터를 이어받아, 로그인 완료 후
+// 원래 선택했던 룸의 게시 화면으로 바로 돌아가도록 함.
 export default function LoginPage() {
-  const handleKakaoLogin = () => {
-    alert('카카오 로그인 연동은 1~2주차 작업 예정입니다. (카카오 개발자 앱 등록 필요)');
+  const params = useSearchParams();
+  const niche = (params.get('niche') as NicheCode) || 'monthly_rent_fighter';
+
+  const handleKakaoLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: {
+        redirectTo: `${window.location.origin}/post?niche=${niche}`,
+      },
+    });
+    if (error) {
+      alert('로그인 중 오류가 발생했습니다: ' + error.message);
+    }
   };
 
   return (

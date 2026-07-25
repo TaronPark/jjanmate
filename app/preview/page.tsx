@@ -22,7 +22,7 @@ export default function PreviewPage() {
         <p style={{ fontSize: 13, margin: 0 }}>택시비 참고 버스 탔더니 잔바리 지출 3000원 방어 성공</p>
       </div>
       <p style={{ fontSize: 13, color: '#555' }}>{ctaByNiche[niche]}</p>
-      <button style={{ width: '100%' }} onClick={() => router.push('/login')}>
+      <button style={{ width: '100%' }} onClick={() => router.push(`/login?niche=${niche}`)}>
         {niche === 'lurker_lounge' ? '지금 아지트 입장해서 구경하기' : '가입하고 계속하기'}
       </button>
     </main>
