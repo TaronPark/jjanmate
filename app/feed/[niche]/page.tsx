@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { NICHES, type NicheCode } from '@/lib/niches';
 import { createClient } from '@/lib/supabase/server';
 import { getTodayKst, getYesterdayKst } from '@/lib/date';
+import ReactionButtons from './ReactionButtons';
 
 // 4-B 재방문 루프 + 2026-07-21 검토 반영: 룸 타이틀/스트릭 상시노출, 상단 상태카드,
 // #전체 포함 서브태그 가로스크롤, 원클릭 공감 리액션(cheer/me_too).
@@ -33,9 +34,12 @@ export default async function FeedPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 2026-07-25 (원클릭 공감 리액션): reactions(reaction_type, user_id)를 nested select로 함께
+  // 가져와서 별도 집계 쿼리 없이 아래에서 카운트/본인 반응 여부를 계산한다.
+  // reactions_select_all이 전체 공개 정책이라 이 방식으로 문제 없음.
   const baseQuery = supabase
     .from('posts')
-    .select('id, content, created_at, ai_niche, status, user_id, profiles(nickname)')
+    .select('id, content, created_at, ai_niche, status, user_id, profiles(nickname), reactions(reaction_type, user_id)')
     .order('created_at', { ascending: false });
 
   // 로그인 상태면 "이 룸에 맞는 글 OR 내가 쓴 미분류/에러 글"까지, 비로그인(비회원 열람)이면
@@ -134,6 +138,13 @@ export default async function FeedPage({
           // ai_niche가 null이면서 이 목록에 떠 있다는 건 위 쿼리 설계상 "내가 쓴 미분류/에러 글"뿐
           // (RLS가 타인의 그런 글은 애초에 안 돌려줌) — status 기준으로 안내 뱃지를 붙인다.
           const unclassifiedLabel = post.status !== 'success' ? UNCLASSIFIED_LABEL[post.status] : null;
+
+          const reactions = (post.reactions ?? []) as { reaction_type: string; user_id: string }[];
+          const cheerCount = reactions.filter((r) => r.reaction_type === 'cheer').length;
+          const meTooCount = reactions.filter((r) => r.reaction_type === 'me_too').length;
+          const hasCheered = !!user && reactions.some((r) => r.reaction_type === 'cheer' && r.user_id === user.id);
+          const hasMeTooed = !!user && reactions.some((r) => r.reaction_type === 'me_too' && r.user_id === user.id);
+
           return (
             <div key={post.id} className="card" style={unclassifiedLabel ? { opacity: 0.6 } : undefined}>
               {unclassifiedLabel && (
@@ -146,8 +157,14 @@ export default async function FeedPage({
                 {(post.profiles as unknown as { nickname: string } | null)?.nickname ?? '익명'} ·{' '}
                 {new Date(post.created_at).toLocaleString('ko-KR')}
               </p>
-              <button style={{ fontSize: 11, marginRight: 6 }}>대단해요</button>
-              <button style={{ fontSize: 11 }}>나도 절약중</button>
+              <ReactionButtons
+                postId={post.id}
+                isLoggedIn={!!user}
+                initialCheerCount={cheerCount}
+                initialMeTooCount={meTooCount}
+                initialHasCheered={hasCheered}
+                initialHasMeTooed={hasMeTooed}
+              />
             </div>
           );
         })

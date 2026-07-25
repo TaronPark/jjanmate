@@ -47,7 +47,7 @@
 | **완료 (2026-07-25)**: 피드 상단 고정 상태 카드 구현 — `app/feed/[niche]/page.tsx`에서 비회원(로그인 유도 CTA)/로그인+오늘 게시함(스트릭 축하)/로그인+오늘 미게시(글쓰기 CTA) 3분기, 헤더 🔥 배지는 "유효 스트릭"을 화면에서 파생 계산(DB 값을 그대로 안 믿고 `last_post_date`가 오늘/어제 KST가 아니면 0으로 보정 — 별도 자정 초기화 배치 없이 항상 정확) | 4-B |
 | 주간 랭킹 + 랭킹 노출 여부 토글 UI | 5, 11 |
 | 백그라운드 재시도 큐 구축 (system_error, 최대 3회) | 6, 9 |
-| 원클릭 공감 리액션 기능 (`reactions` 테이블 추가, 게시글 카드에 버튼 2종 UI) | 5, 6 (2026-07-21 Must 승격, 신규 추가) |
+| **완료 (2026-07-25)**: 원클릭 공감 리액션 기능 — `app/feed/actions.ts`의 `toggleReaction()`(select-then-insert/delete, DB unique 제약으로 race 방어), 피드 쿼리에 `reactions(reaction_type, user_id)` nested select로 카운트/본인 반응여부 계산, `app/feed/[niche]/ReactionButtons.tsx`(클라이언트 컴포넌트, useTransition 낙관적 업데이트, 비회원 클릭 시 confirm 후 `/login` 이동, 활성 상태 스타일+카운트 표기) | 5, 6 (2026-07-21 Must 승격, 신규 추가) |
 | 스팸 격리 건 확인용 경량 DB 조회 스크립트 (별도 관리 백엔드 없이 운영진 직접 조회) | 9, 10 |
 
 ## 5주차
