@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { NicheCode } from '@/lib/niches';
@@ -37,7 +38,10 @@ function LoginContent() {
         카카오로 시작하기
       </button>
       <p style={{ fontSize: 11, color: '#888' }}>구글 등 추가 로그인은 2차 확장 예정 (MVP는 카카오 단일)</p>
-      <p style={{ fontSize: 11, color: '#888' }}>계속 진행 시 이용약관 및 개인정보처리방침에 동의하게 됩니다.</p>
+      <p style={{ fontSize: 11, color: '#888' }}>
+        계속 진행 시 <Link href="/terms">이용약관</Link> 및 <Link href="/privacy">개인정보처리방침</Link>에 동의하게 됩니다.
+        {/* 2026-07-25: 두 문서 모두 초안(법률 검토 전) 상태 — docs/짠메이트_이용약관.md, docs/짠메이트_개인정보처리방침.md 참고 */}
+      </p>
     </main>
   );
 }
