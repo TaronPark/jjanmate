@@ -66,3 +66,37 @@ export function getKstDaysSinceLaunch(launchDateKst: string): number {
 
   return Math.max(1, dayDiff + 1);
 }
+
+/**
+ * 게시글 등의 타임스탬프를 사람 친화적인 상대 시간 문자열로 변환한다.
+ * 2026-07-26 (UI/UX 개편, docs/짠메이트_프론트엔드_UIUX_개편_스펙.md 참고) — date-fns/dayjs
+ * 신규 설치 없이, 필요한 표기 단계만 직접 구현한다(번들 크기 방어 원칙).
+ *
+ * 단계: 방금 전(1분 미만) -> N분 전(1시간 미만) -> N시간 전(24시간 미만) -> 어제(24~48시간) ->
+ * 그 이전은 절대 날짜(YYYY.MM.DD, KST 기준).
+ *
+ * "어제"는 정확한 KST 달력일 비교가 아니라 24~48시간 경과 여부로만 판단하는 단순화된 근사치다 —
+ * 피드 카드 표기용으로는 이 정도 정밀도면 충분하고, 스트릭 계산(lib/date.ts의 KST 달력일 비교)과는
+ * 별개의 용도이므로 혼용하지 않는다.
+ */
+export function getRelativeTimeKo(dateInput: string | Date): string {
+  const past = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  const diffMs = Date.now() - past.getTime();
+
+  if (diffMs < 0 || diffMs < 60 * 1000) return '방금 전';
+
+  const diffMin = diffMs / (60 * 1000);
+  if (diffMin < 60) return `${Math.floor(diffMin)}분 전`;
+
+  const diffHour = diffMin / 60;
+  if (diffHour < 24) return `${Math.floor(diffHour)}시간 전`;
+
+  const diffDay = diffHour / 24;
+  if (diffDay < 2) return '어제';
+
+  const kst = new Date(past.getTime() + KST_OFFSET_MS);
+  const y = kst.getUTCFullYear();
+  const m = kst.getUTCMonth() + 1;
+  const d = kst.getUTCDate();
+  return `${y}.${m}.${d}.`;
+}

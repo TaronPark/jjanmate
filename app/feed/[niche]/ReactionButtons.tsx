@@ -13,7 +13,18 @@ interface ReactionButtonsProps {
   initialHasMeTooed: boolean;
 }
 
-const ACTIVE_STYLE = { background: '#fdecd2', border: '1px solid #f5a623', fontWeight: 700 } as const;
+// 2026-07-26 (UI/UX 개편 스펙 ④) — 크고 각진 텍스트 버튼(대단해요 5)에서 인스타그램/스레드
+// 스타일의 얇은 아웃라인 아이콘+카운트 칩(👍 5)으로 축소. 클릭 시 배경이 Primary 컬러로
+// 채워지는 토글 자체는 기존 그대로 유지, 텍스트 라벨은 넣지 않음(아이콘+카운트만).
+const CHIP_STYLE = {
+  fontSize: 12,
+  padding: '4px 10px',
+  borderRadius: 999,
+  border: '1px solid #ddd',
+  background: '#fff',
+  color: '#555',
+} as const;
+const ACTIVE_STYLE = { background: '#f5a623', border: '1px solid #f5a623', color: '#fff', fontWeight: 700 } as const;
 
 // 2026-07-25: 게시글 카드 중 이 버튼 쌍만 인터랙티브(클라이언트 컴포넌트)로 분리 —
 // 나머지 카드 내용(본문/닉네임/시간)은 여전히 서버 컴포넌트(app/feed/[niche]/page.tsx)에
@@ -74,20 +85,22 @@ export default function ReactionButtons({
   };
 
   return (
-    <div>
+    <div style={{ display: 'flex', gap: 6 }}>
       <button
-        style={{ fontSize: 11, marginRight: 6, ...(hasCheered ? ACTIVE_STYLE : undefined) }}
+        style={{ ...CHIP_STYLE, ...(hasCheered ? ACTIVE_STYLE : undefined) }}
         disabled={isPending}
         onClick={() => handleClick('cheer')}
+        aria-label="대단해요"
       >
-        대단해요 {cheerCount}
+        👍 {cheerCount}
       </button>
       <button
-        style={{ fontSize: 11, ...(hasMeTooed ? ACTIVE_STYLE : undefined) }}
+        style={{ ...CHIP_STYLE, ...(hasMeTooed ? ACTIVE_STYLE : undefined) }}
         disabled={isPending}
         onClick={() => handleClick('me_too')}
+        aria-label="나도 절약중"
       >
-        나도 절약중 {meTooCount}
+        🙌 {meTooCount}
       </button>
     </div>
   );

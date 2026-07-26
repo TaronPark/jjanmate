@@ -1,9 +1,30 @@
 import Link from 'next/link';
 import { NICHES, type NicheCode } from '@/lib/niches';
 import { createClient } from '@/lib/supabase/server';
-import { getTodayKst, getYesterdayKst } from '@/lib/date';
+import { getTodayKst, getYesterdayKst, getRelativeTimeKo } from '@/lib/date';
 import ReactionButtons from './ReactionButtons';
-import LogoutButton from '@/components/LogoutButton';
+import BottomTabBar from '@/components/BottomTabBar';
+import FAB from '@/components/FAB';
+
+// 2026-07-26 (UI/UX 개편 스펙 ③) — roomName 데이터(niches.ts)는 그대로 두고, 쉼표로 구분된
+// "훅 문구, 룸이름" 형태만 시각적으로 2단 분리해서 모바일에서 줄바꿈이 어색하지 않게 만든다.
+// 쉼표가 없는 니치(SNS 지름신 & 홧김비용 방어 룸 등)는 원래 형태 그대로 한 줄로 렌더링.
+function RoomTitle({ roomName }: { roomName: string }) {
+  const commaIndex = roomName.indexOf(', ');
+  if (commaIndex === -1) {
+    return (
+      <strong style={{ fontSize: 16, lineHeight: 1.3, wordBreak: 'keep-all' }}>{roomName}</strong>
+    );
+  }
+  const hook = roomName.slice(0, commaIndex);
+  const room = roomName.slice(commaIndex + 2);
+  return (
+    <span style={{ display: 'block', lineHeight: 1.3 }}>
+      <span style={{ display: 'block', fontSize: 12, color: '#888', fontWeight: 400 }}>{hook}</span>
+      <strong style={{ display: 'block', fontSize: 16, wordBreak: 'keep-all' }}>{room}</strong>
+    </span>
+  );
+}
 
 // 4-B 재방문 루프 + 2026-07-21 검토 반영: 룸 타이틀/스트릭 상시노출, 상단 상태카드,
 // #전체 포함 서브태그 가로스크롤, 원클릭 공감 리액션(cheer/me_too).
@@ -63,8 +84,14 @@ export default async function FeedPage({
   const today = getTodayKst();
   const yesterday = getYesterdayKst();
 
+  // onboarding_niche(2026-07-26 추가): 하단 탭바의 [홈] 링크와 FAB의 룸 컨텍스트 없을 때
+  // 폴백값으로 쓰인다(UI/UX 개편 스펙 ①·② 참고) — 기존엔 스트릭 계산에만 쓰던 쿼리를 확장.
   const { data: profile } = user
-    ? await supabase.from('profiles').select('current_streak, last_post_date').eq('id', user.id).single()
+    ? await supabase
+        .from('profiles')
+        .select('current_streak, last_post_date, onboarding_niche')
+        .eq('id', user.id)
+        .single()
     : { data: null };
 
   const postedToday = profile?.last_post_date === today;
@@ -82,29 +109,25 @@ export default async function FeedPage({
     system_error: '일시적 오류로 분류 실패 · 자동 재시도 예정',
   };
 
+  // 2026-07-26 (UI/UX 개편): 홈 탭 링크 대상. 로그인 유저는 본인 온보딩 홈룸, 비회원은
+  // 비회원 기본 진입 룸(lurker_lounge, 기획서 5번)으로 고정 — app/page.tsx의 비회원 진입점과 동일.
+  const homeNiche: NicheCode = profile?.onboarding_niche ?? 'lurker_lounge';
+
   return (
-    <main>
+    <main style={{ paddingBottom: 72 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <strong>{niche.roomName}</strong>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {/* 로그인 유저이면서 유효 스트릭이 1 이상일 때만 배지 노출 — 비회원은 애초에 배지 없음,
-              로그인했지만 스트릭 0(가입 직후/끊김)인 경우도 "🔥 0일 연속"처럼 어색하게 보이지
-              않도록 숨김(2026-07-25 결정) */}
-          {user && effectiveStreak > 0 && (
-            <span style={{ fontSize: 12, color: '#555' }}>🔥 {effectiveStreak}일 연속</span>
-          )}
-          {/* 2026-07-25 추가: 상단 상태 카드의 "게시하기" 버튼은 postedToday=true면 사라지는데,
-              게시글 자체(createPost)는 하루 여러 번 허용되므로(스트릭 증가만 1일 1회 캡) 이미
-              오늘 글을 쓴 뒤에도 /post로 갈 방법이 있어야 함 — 헤더에 상시 노출되는 버튼으로 보완 */}
-          {user && (
-            <Link href={`/post?niche=${nicheParam}`}>
-              <button style={{ fontSize: 12, padding: '4px 10px' }}>글쓰기</button>
-            </Link>
-          )}
-          {/* 로그인 상태일 때만 로그아웃 버튼 노출(비회원 열람 화면엔 의미 없는 버튼이라 숨김) */}
-          {user && <LogoutButton />}
-        </div>
+        <RoomTitle roomName={niche.roomName} />
+        {/* 로그인 유저이면서 유효 스트릭이 1 이상일 때만 배지 노출 — 비회원은 애초에 배지 없음,
+            로그인했지만 스트릭 0(가입 직후/끊김)인 경우도 "🔥 0일 연속"처럼 어색하게 보이지
+            않도록 숨김(2026-07-25 결정) */}
+        {user && effectiveStreak > 0 && (
+          <span style={{ fontSize: 12, color: '#555', whiteSpace: 'nowrap' }}>🔥 {effectiveStreak}일 연속</span>
+        )}
       </div>
+      {/* 2026-07-26: 상단의 "글쓰기"/로그아웃 버튼은 하단 FAB·마이페이지로 이동(UI/UX 개편
+          스펙 ①·②) — 헤더는 룸 타이틀/스트릭만 남겨 정보 위계를 정리함(당근마켓/인스타그램
+          벤치마킹, docs/짠메이트_프론트엔드_UIUX_개편_스펙.md 참고). 상단 상태 카드의
+          "게시하기" 버튼(아래)은 계속 유지되므로, postedToday=true여도 FAB로 언제든 접근 가능. */}
 
       {notice === 'reclassified' && (
         // 재분류(niche_hint_mismatch) 리다이렉트 직후에만 표시. URL 쿼리 기반이라 새로고침해도
@@ -178,7 +201,7 @@ export default async function FeedPage({
               )}
               <p style={{ fontSize: 11, color: '#888', margin: '0 0 8px' }}>
                 {(post.profiles as unknown as { nickname: string } | null)?.nickname ?? '익명'} ·{' '}
-                {new Date(post.created_at).toLocaleString('ko-KR')}
+                {getRelativeTimeKo(post.created_at)}
               </p>
               <ReactionButtons
                 postId={post.id}
@@ -196,6 +219,11 @@ export default async function FeedPage({
           아직 이 룸에 올라온 글이 없어요. 첫 글을 남겨보세요!
         </p>
       )}
+
+      {/* 2026-07-26 (UI/UX 개편 스펙 ②): 지금 보고 있는 화면이 이 룸 자체이므로, 홈 탭에서
+          들어왔든 둘러보기를 거쳐 들어왔든 상관없이 nicheParam(현재 룸)을 그대로 유지 */}
+      {user && <FAB niche={nicheParam} />}
+      <BottomTabBar active="home" isLoggedIn={!!user} homeNiche={homeNiche} />
     </main>
   );
 }
