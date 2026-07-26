@@ -40,18 +40,6 @@ function largestRemainderAllocate(total: number, weights: number[]): number[] {
   return result;
 }
 
-// 니치 3개에 최대한 균등 분배하고, 나눠떨어지지 않는 잔여분은 날짜/시간 기반 로테이션으로
-// 배분한다 — 매번 같은 니치만 여분을 받지 않도록(장기적으로 공평하게).
-function allocateEvenWithRotation(total: number, count: number, rotationOffset: number): number[] {
-  const base = Math.floor(total / count);
-  const remainder = total - base * count;
-  const result = new Array(count).fill(base);
-  for (let k = 0; k < remainder; k++) {
-    result[(rotationOffset + k) % count] += 1;
-  }
-  return result;
-}
-
 // 정각 스케줄이 아닌 시점(수동 테스트 트리거 등)에 실행돼도 가장 가까운 시간대 슬롯을 골라
 // 합리적으로 동작하게 함(0건 처리로 조용히 끝나지 않도록 하는 방어적 처리).
 function findClosestHourIndex(currentHour: number): number {
@@ -74,6 +62,28 @@ interface ClaimedSeed {
   seed_user_id: string;
 }
 
+// 니치별 "남은 미발행 풀 개수"를 조회한다(2026-07-26, 잔여 풀 비례 배분으로 리팩터링).
+// 풀 규모가 최대 수백 개 수준이라 니치별로 3번 나눠 세는 대신, published_at이 null인 행의
+// niche 컬럼만 한 번에 가져와 JS에서 집계하는 쪽이 왕복 횟수가 적어 더 간단하다.
+async function getRemainingCounts(
+  supabase: ReturnType<typeof createAdminClient>,
+  niches: readonly NicheCode[]
+): Promise<number[]> {
+  const { data, error } = await supabase.from('seed_contents_pool').select('niche').is('published_at', null);
+
+  if (error) {
+    console.error('잔여 시드 풀 조회 실패:', error.message);
+    return niches.map(() => 0);
+  }
+
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    counts.set(row.niche, (counts.get(row.niche) ?? 0) + 1);
+  }
+
+  return niches.map((niche) => counts.get(niche) ?? 0);
+}
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -91,11 +101,28 @@ export async function GET(request: Request) {
   const slotIndex = HOURS.includes(currentHour) ? HOURS.indexOf(currentHour) : findClosestHourIndex(currentHour);
   const slotTarget = hourAllocation[slotIndex];
 
-  const nicheAllocation = allocateEvenWithRotation(
-    slotTarget,
-    NICHE_CODES.length,
-    daysSinceLaunch + slotIndex // 날짜+슬롯 기준 로테이션 시드 — 별도 상태 저장 없이 매번 결정적으로 계산
-  );
+  // 2026-07-26 리팩터링: 니치 균등 분배(+로테이션)를 "잔여 풀 비례 동적 배분"으로 교체.
+  // 니치별로 확보된 시드 콘텐츠 양이 처음부터 다르게 설계돼 있어(예: 홧김비용방어 60% vs
+  // 눈팅러 6.7%), 균등 분배로는 물량이 적은 니치의 풀이 다른 니치보다 훨씬 먼저 바닥나버림.
+  // 잔여 개수 비율 그대로 나누면 모든 니치가 항상 자기 몫에 비례해서 줄어들어, 세 니치가
+  // 거의 동시에 소진된다(어느 한쪽만 먼저 텅 비는 일이 없음).
+  const remainingCounts = await getRemainingCounts(supabase, NICHE_CODES);
+  const totalRemaining = remainingCounts.reduce((a, b) => a + b, 0);
+
+  let nicheAllocation: number[];
+  if (totalRemaining === 0) {
+    // 전체 풀 소진 — 비중 계산 자체가 0/0이 되므로 명시적으로 전부 0 처리하고 스킵
+    nicheAllocation = NICHE_CODES.map(() => 0);
+  } else {
+    // slotTarget이 실제 남은 총량보다 크면 그만큼만 배분(가용 범위 내로 클램프).
+    // 이 클램프 덕분에 최대잉여법이 어떤 니치에도 자기 잔여 개수를 초과해 할당하지 않는다는
+    // 게 수학적으로 보장됨(비중의 합이 1이고 total <= totalRemaining이면, 반올림으로 +1되는
+    // 경우까지 포함해도 결과가 항상 그 니치의 실제 잔여 개수 이내로 떨어짐) — 그래서 니치별로
+    // "혹시 잔여보다 많이 요청하면" 같은 별도 방어 코드가 필요 없다.
+    const claimTotal = Math.min(slotTarget, totalRemaining);
+    const nicheWeights = remainingCounts.map((count) => count / totalRemaining);
+    nicheAllocation = largestRemainderAllocate(claimTotal, nicheWeights);
+  }
 
   let publishedCount = 0;
 
@@ -164,6 +191,7 @@ export async function GET(request: Request) {
     dailyTotal,
     currentHour,
     slotTarget,
+    remainingCounts,
     nicheAllocation,
     published: publishedCount,
   });
