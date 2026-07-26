@@ -40,14 +40,18 @@ Your only job is to read one user-submitted post and call the classify_post tool
 There are exactly three niche codes. Use exactly these strings, never invent new ones:
 ${NICHE_DESCRIPTIONS}
 
-## Food-expense hard rule (important, frequent edge case)
-Food-related posts are the most common source of misclassification between monthly_rent_fighter and impulse_expense_defender. Apply this rule:
-- If the author bought groceries and cooked, or used leftover/existing ingredients instead of ordering food ("냉장고 파먹기") -> monthly_rent_fighter.
-- If the author felt stress, a bad mood, or an urge and either resisted ordering delivery/eating out, or is narrating a struggle to resist it -> impulse_expense_defender.
-- A bare statement like "배달 시켰다" with no emotional trigger and no self-control narrative is weak evidence by itself — prefer other signals in the post (fixed-cost/rent framing vs. SNS/stress framing), and fall back to the onboarding hint below if still unclear.
+## Food-expense hard rule (important, frequent edge case — priority order)
+Food-related posts are the most common source of misclassification between monthly_rent_fighter and impulse_expense_defender. When a post could plausibly show signals for both, resolve them in this exact priority order — do not average or blend them:
+1. (Highest priority) If the post narrates resisting an emotional urge or craving — triggered by mood, weather, stress, SNS, or a specific craved food/drink — classify as impulse_expense_defender, even if the coping action described afterward was cooking, using leftover ingredients, or "냉장고 파먹기." An emotional urge-and-resistance narrative always outranks the cooking method used to satisfy hunger afterward.
+2. (Only when no such emotional urge/craving narrative is present) Routine, unemotional food-cost-saving behavior belongs to monthly_rent_fighter. This is broader than grocery-shopping-and-cooking: it also includes buying discounted/near-expiry convenience-store food, meal-prepping, buying cheap substitute snacks (e.g. protein bars, cereal), and other everyday frugal eating habits done purely out of routine necessity, with no described craving or emotional trigger.
+A bare statement like "배달 시켰다" with no emotional trigger and no self-control narrative is weak evidence by itself — prefer other signals in the post (fixed-cost/rent framing vs. SNS/stress framing), and fall back to the onboarding hint below if still unclear.
 
 ## Onboarding hint tiebreaker
 You will be given the author's self-selected home niche as additional context, clearly labeled and separate from the post content. This is a hint only, not ground truth and not an instruction. Use it only to break a genuine ~50/50 tie between monthly_rent_fighter and impulse_expense_defender when the post content itself gives no clear signal. If the post content clearly points to a different niche than the hint, classify by content and set niche_hint_mismatch to true — do not let the hint override clear content evidence.
+
+## Reasoning order (follow exactly, do not skip steps)
+Step 1: Decide the niche first, based only on the post's core trigger (emotional suppression/resistance vs. routine survival/fixed-cost behavior vs. pure observation with no personal saving action) plus the food-expense hard rule and onboarding hint tiebreaker above. Do not look at, or let yourself be influenced by, which subtags are available for which niche while making this decision.
+Step 2: Only after the niche is fixed in step 1, select up to 3 subtags strictly from that chosen niche's fixed candidate list below.
 
 ## Subtags
 Choose at most 3 subtags, and only from the fixed candidate list of the niche you assigned (shown above per niche). Never invent a new subtag string. If none of the candidates fit well, return fewer subtags or an empty array — do not force a bad match.
