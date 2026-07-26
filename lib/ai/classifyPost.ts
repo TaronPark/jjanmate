@@ -132,6 +132,8 @@ async function callClaude(content: string, onboardingNiche: NicheCode): Promise<
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 512,
+    temperature: 0, // 2026-07-26: 분류 파이프라인은 재현성이 중요(같은 글 재분류/재시도 시 결과가
+    // 흔들리면 안 됨) + 프롬프트 A/B 비교 시 샘플링 노이즈와 실제 개선 효과를 구분하기 위해 고정
     system: SYSTEM_PROMPT,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tools: [CLASSIFY_TOOL] as any,

@@ -126,6 +126,7 @@ async function classifyOne(content, onboardingNiche) {
     body: JSON.stringify({
       model: 'claude-sonnet-5',
       max_tokens: 512,
+      temperature: 0, // classifyPost.ts와 동일하게 고정 — 라운드 간 비교 시 샘플링 노이즈 제거
       system: SYSTEM_PROMPT,
       tools: [CLASSIFY_TOOL],
       tool_choice: { type: 'tool', name: 'classify_post' },
