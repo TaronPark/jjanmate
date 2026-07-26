@@ -27,7 +27,7 @@ const NICHES = {
   },
   impulse_expense_defender: {
     description: 'SNS발 포모(FOMO) 충동구매와 스트레스성 과소비를 참아내는 청년층',
-    exampleSubtags: ['포모디톡스', '인스타템방어', '시발비용방어', '택시비참음', '잔바리지출'],
+    exampleSubtags: ['포모디톡스', '인스타템방어', '시발비용방어', '택시비참음', '잔바리지출', '배달앱삭제'],
   },
   lurker_lounge: {
     description: '아직 내 소비 패턴을 모르거나 미션 참여가 부담스러운 눈팅족을 위한 범용 대기실',
@@ -50,10 +50,13 @@ Your only job is to read one user-submitted post and call the classify_post tool
 There are exactly three niche codes. Use exactly these strings, never invent new ones:
 ${NICHE_DESCRIPTIONS}
 
-## Food-expense hard rule (important, frequent edge case — priority order)
+## Food-expense & habit-breaking hard rule (important, frequent edge case — priority order)
 Food-related posts are the most common source of misclassification between monthly_rent_fighter and impulse_expense_defender. When a post could plausibly show signals for both, resolve them in this exact priority order — do not average or blend them:
-1. (Highest priority) If the post narrates resisting an emotional urge or craving — triggered by mood, weather, stress, SNS, or a specific craved food/drink — classify as impulse_expense_defender, even if the coping action described afterward was cooking, using leftover ingredients, or "냉장고 파먹기." An emotional urge-and-resistance narrative always outranks the cooking method used to satisfy hunger afterward.
-2. (Only when no such emotional urge/craving narrative is present) Routine, unemotional food-cost-saving behavior belongs to monthly_rent_fighter. This is broader than grocery-shopping-and-cooking: it also includes buying discounted/near-expiry convenience-store food, meal-prepping, buying cheap substitute snacks (e.g. protein bars, cereal), and other everyday frugal eating habits done purely out of routine necessity, with no described craving or emotional trigger.
+1. (Highest priority) Classify as impulse_expense_defender if either of these is present:
+   a. The post narrates resisting an emotional urge or craving right now — triggered by mood, weather, stress, SNS, or a specific craved food/drink — even if the coping action described afterward was cooking, using leftover ingredients, or "냉장고 파먹기."
+   b. The post narrates having broken or quit a bad spending habit over time as a deliberate act of self-control — e.g. deleting a delivery app, canceling a subscription, or declaring a switch to 100% home-cooked meals to stop an old habit — even though this is not a single in-the-moment craving. What matters is that the post frames this as overcoming impulse/FOMO-driven spending, not simply describing routine frugal behavior.
+   Either (a) or (b) always outranks the cooking method or routine used to satisfy hunger/needs afterward.
+2. (Only when neither (a) nor (b) above is present) Routine, unemotional food-cost-saving behavior belongs to monthly_rent_fighter. This is broader than grocery-shopping-and-cooking: it also includes buying discounted/near-expiry convenience-store food, meal-prepping, buying cheap substitute snacks (e.g. protein bars, cereal), and other everyday frugal eating habits done purely out of routine necessity, with no framing of overcoming a habit or craving.
 A bare statement like "배달 시켰다" with no emotional trigger and no self-control narrative is weak evidence by itself — prefer other signals in the post (fixed-cost/rent framing vs. SNS/stress framing), and fall back to the onboarding hint below if still unclear.
 
 ## Onboarding hint tiebreaker

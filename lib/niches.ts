@@ -57,7 +57,7 @@ export const NICHES: Record<
     onboardingPrompt: '인스타 지름신·홧김비용 방어',
     composePrompt: '오늘 어떤 지출을 참았나요?',
     roomName: 'SNS 지름신 & 홧김비용 방어 룸',
-    exampleSubtags: ['포모디톡스', '인스타템방어', '시발비용방어', '택시비참음', '잔바리지출'],
+    exampleSubtags: ['포모디톡스', '인스타템방어', '시발비용방어', '택시비참음', '잔바리지출', '배달앱삭제'],
   },
   lurker_lounge: {
     label: '프로눈팅러의 대리만족',
