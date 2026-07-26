@@ -62,6 +62,69 @@ interface ClaimedSeed {
   seed_user_id: string;
 }
 
+interface NewPost {
+  id: string;
+  user_id: string;
+}
+
+type ReactionType = 'cheer' | 'me_too';
+
+const MIN_REACTORS = 3;
+const MAX_REACTORS = 7;
+const REACTION_TYPES: ReactionType[] = ['cheer', 'me_too'];
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// 시드 페르소나 30명의 id 목록을 seed_contents_pool.seed_user_id에서 매번 동적으로 뽑아온다.
+// UUID를 코드에 하드코딩하지 않는 이유: 나중에 페르소나가 추가/변경돼도 이 함수가 자동으로
+// 최신 목록을 따라가게 하기 위함(400행 정도라 매 실행마다 다시 읽어도 비용은 무시할 만함).
+async function getSeedPersonaIds(supabase: ReturnType<typeof createAdminClient>): Promise<string[]> {
+  const { data, error } = await supabase.from('seed_contents_pool').select('seed_user_id');
+  if (error || !data) {
+    console.error('시드 페르소나 ID 목록 조회 실패:', error?.message);
+    return [];
+  }
+  return Array.from(new Set(data.map((row) => row.seed_user_id as string)));
+}
+
+// 이번 실행에서 새로 발행된 시드 게시글마다, 글쓴이 본인을 제외한 다른 시드 페르소나 중
+// 3~7명을 무작위로 뽑아 반응(cheer/me_too) row를 만든다. 실제 오가닉 유저가 반응을 남길 때와
+// 완전히 동일한 테이블 구조(post_id, user_id, reaction_type)를 그대로 사용하므로, 나중에 진짜
+// 유저가 같은 글에 반응을 추가/취소해도 카운트 로직이 꼬일 일이 없다(전부 reactions 테이블의
+// 실제 row 개수로 계산되는 구조라 시드/오가닉 구분 없이 동일하게 동작 — app/feed/[niche]/page.tsx
+// 참고). 루프 안에서 매번 insert하지 않고 전체를 모아 마지막에 1회 bulk insert한다.
+function buildReactionRows(
+  newPosts: NewPost[],
+  seedPersonaIds: string[]
+): { post_id: string; user_id: string; reaction_type: ReactionType }[] {
+  const rows: { post_id: string; user_id: string; reaction_type: ReactionType }[] = [];
+
+  for (const post of newPosts) {
+    const candidates = seedPersonaIds.filter((id) => id !== post.user_id); // 본인 글 자기반응 방지
+    if (candidates.length === 0) continue;
+
+    const reactorCount = Math.min(
+      candidates.length,
+      MIN_REACTORS + Math.floor(Math.random() * (MAX_REACTORS - MIN_REACTORS + 1))
+    );
+    const reactors = shuffle(candidates).slice(0, reactorCount);
+
+    for (const reactorId of reactors) {
+      const reactionType = REACTION_TYPES[Math.floor(Math.random() * REACTION_TYPES.length)];
+      rows.push({ post_id: post.id, user_id: reactorId, reaction_type: reactionType });
+    }
+  }
+
+  return rows;
+}
+
 // 니치별 "남은 미발행 풀 개수"를 조회한다(2026-07-26, 잔여 풀 비례 배분으로 리팩터링).
 // 풀 규모가 최대 수백 개 수준이라 니치별로 3번 나눠 세는 대신, published_at이 null인 행의
 // niche 컬럼만 한 번에 가져와 JS에서 집계하는 쪽이 왕복 횟수가 적어 더 간단하다.
@@ -125,6 +188,7 @@ export async function GET(request: Request) {
   }
 
   let publishedCount = 0;
+  const newlyPublishedPosts: NewPost[] = [];
 
   for (let i = 0; i < NICHE_CODES.length; i++) {
     const niche = NICHE_CODES[i];
@@ -157,13 +221,33 @@ export async function GET(request: Request) {
       created_at: new Date().toISOString(),
     }));
 
-    const { error: insertError } = await supabase.from('posts').insert(rows);
+    const { data: insertedPosts, error: insertError } = await supabase.from('posts').insert(rows).select('id, user_id');
     if (insertError) {
       console.error(`시드 게시글 insert 실패 (niche=${niche}):`, insertError.message);
       continue;
     }
 
     publishedCount += rows.length;
+    newlyPublishedPosts.push(...((insertedPosts ?? []) as NewPost[]));
+  }
+
+  // 2026-07-26 (시드 반응 자동 생성): 이번 실행에서 새로 발행된 게시글마다 다른 시드 페르소나
+  // 3~7명이 반응을 남긴 것처럼 reactions에 실제 row를 채워 넣는다. UI 카운트는 이 테이블의 row
+  // 개수로 계산되므로(하드코딩된 숫자가 아님) 나중에 실유저 반응이 섞여도 정합성 문제가 없고,
+  // "OOO님 외 N명" 같은 향후 기능이나 협업 필터링용 유저-게시글 관계 데이터로도 그대로 쓸 수 있다.
+  let reactionCount = 0;
+  if (newlyPublishedPosts.length > 0) {
+    const seedPersonaIds = await getSeedPersonaIds(supabase);
+    const reactionRows = buildReactionRows(newlyPublishedPosts, seedPersonaIds);
+
+    if (reactionRows.length > 0) {
+      const { error: reactionError } = await supabase.from('reactions').insert(reactionRows);
+      if (reactionError) {
+        console.error('시드 반응 insert 실패:', reactionError.message);
+      } else {
+        reactionCount = reactionRows.length;
+      }
+    }
   }
 
   // 매칭 프리뷰는 이번 클레임 여부와 무관하게 3개 니치 전체를 매번 갱신 — 오가닉 게시글도
@@ -194,5 +278,6 @@ export async function GET(request: Request) {
     remainingCounts,
     nicheAllocation,
     published: publishedCount,
+    reactionsGenerated: reactionCount,
   });
 }
