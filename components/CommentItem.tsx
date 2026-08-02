@@ -24,59 +24,42 @@ export default function CommentItem({
   const [replying, setReplying] = useState(false);
 
   const isCollapsed = collapsedOverride ?? comment.is_collapsed;
+  const wrapperClass = depth === 1 ? 'reply-item' : 'comment-item';
 
-  return (
-    <div
-      style={{
-        marginLeft: depth === 1 ? 20 : 0,
-        marginTop: 8,
-        padding: '8px 10px',
-        borderRadius: 8,
-        background: depth === 1 ? '#fafafa' : '#fff',
-        border: comment.is_best ? '1.5px solid #f5a623' : '1px solid #eee',
-      }}
-    >
-      {comment.is_best && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#f5a623', fontWeight: 700, marginBottom: 4 }}>
-          <PinnedIcon size={12} color="#f5a623" /> 베스트댓글
-        </div>
-      )}
-
-      {isCollapsed ? (
-        <button
-          onClick={() => setCollapsedOverride(false)}
-          style={{ width: '100%', textAlign: 'left', fontSize: 12, color: '#999', border: 'none', background: 'none', padding: '4px 0' }}
-        >
-          비추천이 많은 댓글입니다. (터치해서 펼치기)
+  if (isCollapsed) {
+    return (
+      <div className={wrapperClass}>
+        <button onClick={() => setCollapsedOverride(false)} className="blind-comment">
+          ⚠️ 비추천이 많은 댓글입니다. (클릭하여 보기)
         </button>
-      ) : (
-        <>
-          <div style={{ fontSize: 12, marginBottom: 4 }}>
-            <span style={{ fontWeight: 600 }}>{comment.author_nickname}</span>
-            {comment.author_user_flair && (
-              <span style={{ marginLeft: 4, padding: '1px 5px', border: '1px solid #ddd', borderRadius: 8, fontSize: 10, color: '#888' }}>
-                {comment.author_user_flair}
-              </span>
-            )}
-            <span style={{ marginLeft: 6, color: '#999' }}>· {getRelativeTimeKo(comment.created_at)}</span>
-          </div>
-          <p style={{ fontSize: 13, margin: '0 0 6px', whiteSpace: 'pre-wrap' }}>{comment.body}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <VoteButtons
-              targetType="comment"
-              targetId={comment.id}
-              initialUpvotes={comment.upvote_count}
-              initialDownvotes={comment.downvote_count}
-              initialMyVote={comment.my_vote}
-              voteUpLabel="공감"
-              voteDownLabel="비추"
-            />
-            <button onClick={() => setReplying((v) => !v)} style={{ fontSize: 11, color: '#888', border: 'none', background: 'none' }}>
-              답글
-            </button>
-          </div>
-        </>
-      )}
+      </div>
+    );
+  }
+
+  const body = (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="user-info" style={{ fontSize: 13 }}>
+          <span className="user-name">{comment.author_nickname}</span>
+          {comment.author_user_flair && <span className="user-flair">{comment.author_user_flair}</span>}
+          <span className="time">{getRelativeTimeKo(comment.created_at)}</span>
+        </div>
+      </div>
+      <p style={{ fontSize: 14, margin: '4px 0 8px', whiteSpace: 'pre-wrap' }}>{comment.body}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <VoteButtons
+          targetType="comment"
+          targetId={comment.id}
+          initialUpvotes={comment.upvote_count}
+          initialDownvotes={comment.downvote_count}
+          initialMyVote={comment.my_vote}
+          voteUpLabel="공감"
+          voteDownLabel="비추"
+        />
+        <button onClick={() => setReplying((v) => !v)} className="vote-btn plain">
+          답글
+        </button>
+      </div>
 
       {replying && (
         <CommentForm
@@ -86,6 +69,21 @@ export default function CommentItem({
           onDone={() => setReplying(false)}
           autoFocus
         />
+      )}
+    </>
+  );
+
+  return (
+    <div className={wrapperClass}>
+      {comment.is_best ? (
+        <div className="best-pin">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--gold)', fontWeight: 700, marginBottom: 6 }}>
+            <PinnedIcon size={12} color="var(--gold)" /> 베스트댓글
+          </div>
+          {body}
+        </div>
+      ) : (
+        body
       )}
 
       {depth === 0 &&

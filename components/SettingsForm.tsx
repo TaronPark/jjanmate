@@ -43,12 +43,12 @@ export default function SettingsForm({ rooms, initialDefaultRoomId, initialPrefs
 
   return (
     <div>
-      <section style={{ marginBottom: 24 }}>
-        <h4 style={{ fontSize: 13, margin: '0 0 8px', color: '#888' }}>룸탭 기본 룸 지정</h4>
+      <section style={{ marginBottom: 8 }}>
+        <h4 style={{ fontSize: 12, margin: '0 0 8px', color: 'var(--text-sub)', fontWeight: 700 }}>룸탭 기본 룸 지정</h4>
         <select
           value={defaultRoomId}
           onChange={(e) => handleRoomChange(e.target.value)}
-          style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', width: '100%' }}
+          style={{ fontSize: 13, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', width: '100%' }}
         >
           <option value="">자동 (최근 방문한 룸 우선, 없으면 짠수다)</option>
           {rooms.map((r) => (
@@ -59,8 +59,8 @@ export default function SettingsForm({ rooms, initialDefaultRoomId, initialPrefs
         </select>
       </section>
 
-      <section style={{ marginBottom: 24 }}>
-        <h4 style={{ fontSize: 13, margin: '0 0 8px', color: '#888' }}>알림 설정</h4>
+      <section style={{ marginBottom: 8 }}>
+        <h4 style={{ fontSize: 12, margin: '16px 0 4px', color: 'var(--text-sub)', fontWeight: 700 }}>알림 설정</h4>
         {TOGGLE_LABELS.map(({ key, label }) => (
           <div
             key={key}
@@ -69,7 +69,7 @@ export default function SettingsForm({ rooms, initialDefaultRoomId, initialPrefs
               justifyContent: 'space-between',
               alignItems: 'center',
               padding: '12px 0',
-              borderBottom: '1px solid #f0f0f0',
+              borderBottom: '1px solid var(--border)',
               fontSize: 13,
             }}
           >
@@ -83,7 +83,7 @@ export default function SettingsForm({ rooms, initialDefaultRoomId, initialPrefs
                 height: 22,
                 borderRadius: 11,
                 border: 'none',
-                background: prefs[key] ? '#f5a623' : '#ddd',
+                background: prefs[key] ? '#111' : '#ddd',
                 position: 'relative',
                 cursor: 'pointer',
                 flexShrink: 0,
@@ -106,7 +106,7 @@ export default function SettingsForm({ rooms, initialDefaultRoomId, initialPrefs
         ))}
       </section>
 
-      {savedAt && <p style={{ fontSize: 11, color: '#4caf50', margin: '0 0 16px' }}>변경사항이 저장됐어요.</p>}
+      {savedAt && <p style={{ fontSize: 11, color: '#4caf50', margin: '8px 0 0' }}>변경사항이 저장됐어요.</p>}
     </div>
   );
 }

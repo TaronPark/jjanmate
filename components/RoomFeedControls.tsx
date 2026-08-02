@@ -79,21 +79,17 @@ export default function RoomFeedControls({
   };
 
   return (
-    <div style={{ margin: '4px 0 12px' }}>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+    <div className="filter-bar">
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
         <select
+          className="dropdown"
           value={sort}
           onChange={(e) => navigate(currentRoom.code, e.target.value as 'hot' | 'new', activeFlairCode)}
-          style={{ fontSize: 12, padding: '6px 8px', borderRadius: 8, border: '1px solid #ddd' }}
         >
           <option value="hot">🔥 인기순</option>
           <option value="new">🕒 최신순</option>
         </select>
-        <select
-          value={currentRoom.code}
-          onChange={(e) => navigate(e.target.value, sort, null)}
-          style={{ fontSize: 12, padding: '6px 8px', borderRadius: 8, border: '1px solid #ddd', flex: 1 }}
-        >
+        <select className="dropdown" value={currentRoom.code} onChange={(e) => navigate(e.target.value, sort, null)} style={{ flex: 1 }}>
           {rooms.map((r) => (
             <option key={r.code} value={r.code}>
               {r.name}
@@ -101,25 +97,19 @@ export default function RoomFeedControls({
           ))}
         </select>
       </div>
-      <p style={{ fontSize: 11, color: '#888', margin: '0 0 8px' }}>{currentRoom.subtitle}</p>
+      <p style={{ fontSize: 11, color: 'var(--text-sub)', margin: '8px 0 0' }}>{currentRoom.subtitle}</p>
 
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+      <div className="flair-chips">
+        <button
+          onClick={() => navigate(currentRoom.code, sort, null)}
+          className={`chip${activeFlairCode === null ? ' active' : ''}`}
+        >
+          전체
+        </button>
         {flairs.map((f) => {
           const active = activeFlairCode === f.code;
           return (
-            <button
-              key={f.id}
-              onClick={() => handleFlairClick(f.code)}
-              style={{
-                flexShrink: 0,
-                fontSize: 12,
-                padding: '6px 12px',
-                borderRadius: 14,
-                border: active ? 'none' : '1px solid #ddd',
-                background: active ? '#f5a623' : '#fff',
-                color: active ? '#fff' : '#555',
-              }}
-            >
+            <button key={f.id} onClick={() => handleFlairClick(f.code)} className={`chip${active ? ' active' : ''}`}>
               {f.label}
             </button>
           );

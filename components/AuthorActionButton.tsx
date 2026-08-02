@@ -28,20 +28,12 @@ export default function AuthorActionButton({ postId, actionLabelA, actionLabelB 
   };
 
   return (
-    <div style={{ display: 'flex', gap: 8, margin: '10px 0' }}>
-      <button
-        onClick={() => handleClick('a')}
-        disabled={submitting}
-        style={{ flex: 1, padding: 10, borderRadius: 10, border: '1px solid #f5a623', background: '#fff7ed', color: '#c2410c', fontSize: 13 }}
-      >
+    <div style={{ display: 'flex', gap: 8, margin: '16px 0' }}>
+      <button onClick={() => handleClick('a')} disabled={submitting} className="btn btn-primary" style={{ flex: 1 }}>
         {actionLabelA}
       </button>
       {actionLabelB && (
-        <button
-          onClick={() => handleClick('b')}
-          disabled={submitting}
-          style={{ flex: 1, padding: 10, borderRadius: 10, border: '1px solid #ddd', background: '#fff', color: '#555', fontSize: 13 }}
-        >
+        <button onClick={() => handleClick('b')} disabled={submitting} className="btn btn-secondary" style={{ flex: 1 }}>
           {actionLabelB}
         </button>
       )}

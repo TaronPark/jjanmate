@@ -87,43 +87,17 @@ export default function VoteButtons({
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button
-          onClick={(e) => handleVote(1, e)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            color: myVote === 1 ? '#f5a623' : '#666',
-            border: 'none',
-            background: 'none',
-            padding: 0,
-            fontSize: 13,
-            fontWeight: myVote === 1 ? 700 : 400,
-          }}
-        >
-          <VoteUpIcon size={15} active={myVote === 1} /> {voteUpLabel} {upvotes}
+      <div className="reaction-bar">
+        <button onClick={(e) => handleVote(1, e)} className={`vote-btn${myVote === 1 ? ' active' : ''}`}>
+          <VoteUpIcon size={14} active={myVote === 1} /> {voteUpLabel} {upvotes}
         </button>
-        <button
-          onClick={(e) => handleVote(-1, e)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            color: myVote === -1 ? '#3b82f6' : '#666',
-            border: 'none',
-            background: 'none',
-            padding: 0,
-            fontSize: 13,
-            fontWeight: myVote === -1 ? 700 : 400,
-          }}
-        >
-          <VoteDownIcon size={15} active={myVote === -1} /> {voteDownLabel} {downvotes}
+        <button onClick={(e) => handleVote(-1, e)} className={`vote-btn${myVote === -1 ? ' active' : ''}`}>
+          <VoteDownIcon size={14} active={myVote === -1} /> {voteDownLabel} {downvotes}
         </button>
       </div>
       {showRatioBar && total > 0 && (
-        <div style={{ marginTop: 4, height: 4, width: 120, borderRadius: 2, background: '#eee', overflow: 'hidden' }}>
-          <div style={{ width: `${upRatio}%`, height: '100%', background: '#f5a623' }} />
+        <div className="vote-ratio-bar">
+          <div className="vote-ratio-fill" style={{ width: `${upRatio}%` }} />
         </div>
       )}
     </div>

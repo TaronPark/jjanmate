@@ -22,7 +22,7 @@ export default function LogoutButton() {
   };
 
   return (
-    <button style={{ fontSize: 11, padding: '4px 10px' }} onClick={handleLogout}>
+    <button className="btn btn-secondary" onClick={handleLogout}>
       로그아웃
     </button>
   );

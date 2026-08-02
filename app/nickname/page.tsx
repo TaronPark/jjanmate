@@ -27,9 +27,9 @@ export default function NicknamePage() {
   };
 
   return (
-    <main>
-      <h3>짠메이트에서 쓸 닉네임을 정해주세요</h3>
-      <p style={{ fontSize: 12, color: '#888', margin: '0 0 12px' }}>
+    <main className="page-body" style={{ paddingTop: 40 }}>
+      <h3 style={{ fontSize: 16, marginBottom: 8 }}>짠메이트에서 쓸 닉네임을 정해주세요</h3>
+      <p style={{ fontSize: 12, color: 'var(--text-sub)', margin: '0 0 12px' }}>
         카카오 닉네임과는 별개예요. 여기서만 쓰이는 이름이라 편하게 지어도 괜찮아요.
       </p>
       <input
@@ -37,10 +37,10 @@ export default function NicknamePage() {
         maxLength={12}
         onChange={(e) => setNickname(e.target.value)}
         placeholder="예: 절약요정, 냉장고파먹기왕"
-        style={{ width: '100%', padding: 8, marginBottom: 8 }}
+        style={{ width: '100%', padding: 10, marginBottom: 8, border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
       />
       {error && <p style={{ color: '#c0392b', fontSize: 12, margin: '0 0 8px' }}>{error}</p>}
-      <button style={{ width: '100%' }} onClick={handleSubmit} disabled={!nickname.trim() || saving}>
+      <button onClick={handleSubmit} disabled={!nickname.trim() || saving} className="btn btn-primary">
         {saving ? '저장 중...' : '시작하기'}
       </button>
     </main>

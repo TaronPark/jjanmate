@@ -34,24 +34,21 @@ export default function NotificationList({ notifications, texts, links, hasUnrea
   };
 
   if (notifications.length === 0) {
-    return <p style={{ fontSize: 12, color: '#888', textAlign: 'center', padding: '40px 0' }}>아직 알림이 없어요.</p>;
+    return <p style={{ fontSize: 12, color: 'var(--text-sub)', textAlign: 'center', padding: '40px 16px' }}>아직 알림이 없어요.</p>;
   }
 
   return (
     <div>
       {hasUnread && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-          <button
-            onClick={handleMarkAll}
-            style={{ fontSize: 11, color: '#888', border: 'none', background: 'none', padding: 4 }}
-          >
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 16px 0' }}>
+          <button onClick={handleMarkAll} style={{ fontSize: 11, color: 'var(--text-sub)', border: 'none', background: 'none', padding: 4 }}>
             모두 읽음 처리
           </button>
         </div>
       )}
       <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {notifications.map((n) => (
-          <li key={n.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+          <li key={n.id} className="list-item">
             <button
               onClick={() => handleClick(n)}
               style={{
@@ -60,9 +57,9 @@ export default function NotificationList({ notifications, texts, links, hasUnrea
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 8,
-                padding: '12px 4px',
                 border: 'none',
                 background: 'none',
+                padding: 0,
                 cursor: 'pointer',
               }}
             >
@@ -74,15 +71,15 @@ export default function NotificationList({ notifications, texts, links, hasUnrea
                     width: 6,
                     height: 6,
                     borderRadius: '50%',
-                    background: '#f5a623',
+                    background: 'var(--gold)',
                   }}
                 />
               )}
               <span style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13, color: n.is_read ? '#888' : '#222', lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: 13, color: n.is_read ? 'var(--text-sub)' : 'var(--text-main)', lineHeight: 1.4 }}>
                   {texts[n.id]}
                 </p>
-                <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(n.created_at).toLocaleString('ko-KR')}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-sub)' }}>{new Date(n.created_at).toLocaleString('ko-KR')}</span>
               </span>
             </button>
           </li>

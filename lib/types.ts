@@ -125,6 +125,9 @@ export interface FeedPost extends Post {
   flair: PostFlair;
   author_nickname: string;
   author_user_flair: string | null;
+  // 작성자가 "현재 유지 중인" 월간 배지를 보유했는지(가장 최근 정산 year_month 기준).
+  // 시안의 크라운 아이콘은 항상 노출되지만(정적 목업), 실제로는 이 조건이 참일 때만 표시한다.
+  author_has_badge: boolean;
   is_bookmarked: boolean;
   best_comment: { body: string; net_upvotes: number } | null;
   my_vote: 1 | -1 | 0;

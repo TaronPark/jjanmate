@@ -40,52 +40,24 @@ export default function BottomTabBar({ active, isLoggedIn, defaultRoomCode, writ
     router.push(path);
   };
 
-  const tabStyle = (isActive: boolean): React.CSSProperties => ({
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    padding: '8px 0',
-    fontSize: 10,
-    color: isActive ? '#f5a623' : '#888',
-    fontWeight: isActive ? 700 : 500,
-    textDecoration: 'none',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-  });
+  const navColor = (isActive: boolean) => (isActive ? '#111' : '#8e8e93');
 
   return (
-    <nav
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        maxWidth: 420,
-        margin: '0 auto',
-        display: 'flex',
-        borderTop: '1px solid #eee',
-        background: '#fff',
-        zIndex: 10,
-      }}
-    >
-      <Link href="/" style={tabStyle(active === 'popular')}>
-        <NavFlameIcon color={active === 'popular' ? '#f5a623' : '#888'} />
+    <nav className="bottom-nav">
+      <Link href="/" className={`nav-item${active === 'popular' ? ' active' : ''}`}>
+        <NavFlameIcon color={navColor(active === 'popular')} />
         <span>인기</span>
       </Link>
-      <button style={tabStyle(active === 'room')} onClick={goToRoom}>
-        <NavHomeIcon color={active === 'room' ? '#f5a623' : '#888'} />
+      <button className={`nav-item${active === 'room' ? ' active' : ''}`} onClick={goToRoom}>
+        <NavHomeIcon color={navColor(active === 'room')} />
         <span>룸</span>
       </button>
-      <button style={tabStyle(active === 'write')} onClick={requireLogin(writeHref)}>
-        <NavWriteIcon color={active === 'write' ? '#f5a623' : '#888'} />
+      <button className={`nav-item${active === 'write' ? ' active' : ''}`} onClick={requireLogin(writeHref)}>
+        <NavWriteIcon color={navColor(active === 'write')} />
         <span>글쓰기</span>
       </button>
-      <button style={tabStyle(active === 'mypage')} onClick={requireLogin('/mypage')}>
-        <NavUserIcon color={active === 'mypage' ? '#f5a623' : '#888'} />
+      <button className={`nav-item${active === 'mypage' ? ' active' : ''}`} onClick={requireLogin('/mypage')}>
+        <NavUserIcon color={navColor(active === 'mypage')} />
         <span>마이페이지</span>
       </button>
     </nav>

@@ -22,13 +22,16 @@ export default function LoginPage() {
   };
 
   return (
-    <main>
-      <h3>짠메이트 시작하기</h3>
-      <button style={{ width: '100%', marginBottom: 8 }} onClick={handleKakaoLogin}>
+    <main className="page-body" style={{ paddingTop: 40 }}>
+      <div className="logo-text" style={{ marginBottom: 24 }}>
+        Jjanmate
+      </div>
+      <h3 style={{ fontSize: 16, marginBottom: 16 }}>짠메이트 시작하기</h3>
+      <button className="btn btn-primary" style={{ marginBottom: 8 }} onClick={handleKakaoLogin}>
         카카오로 시작하기
       </button>
-      <p style={{ fontSize: 11, color: '#888' }}>구글 등 추가 로그인은 2차 확장 예정 (MVP는 카카오 단일)</p>
-      <p style={{ fontSize: 11, color: '#888' }}>
+      <p style={{ fontSize: 11, color: 'var(--text-sub)' }}>구글 등 추가 로그인은 2차 확장 예정 (MVP는 카카오 단일)</p>
+      <p style={{ fontSize: 11, color: 'var(--text-sub)' }}>
         계속 진행 시 <Link href="/terms">이용약관</Link> 및 <Link href="/privacy">개인정보처리방침</Link>에 동의하게 됩니다.
       </p>
       <p style={{ fontSize: 11, textAlign: 'center', marginTop: 16 }}>

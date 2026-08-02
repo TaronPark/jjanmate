@@ -28,7 +28,7 @@ export default function UserFlairEditor({ initialFlair }: { initialFlair: string
     return (
       <button
         onClick={() => setEditing(true)}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, border: '1px solid #ddd', borderRadius: 12, padding: '4px 10px' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, border: '1px solid var(--border)', borderRadius: 12, padding: '4px 10px', background: '#fff' }}
       >
         <EditPencilIcon size={12} /> {initialFlair ?? '유저 플레어 설정'}
       </button>

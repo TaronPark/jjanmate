@@ -153,7 +153,7 @@ const TERMS_CONTENT = `# 짠메이트 이용약관 (v2)
 
 export default function TermsPage() {
   return (
-    <main>
+    <main className="page-body">
       <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: 13 }}>{TERMS_CONTENT}</div>
     </main>
   );

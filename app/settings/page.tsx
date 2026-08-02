@@ -4,11 +4,12 @@ import { createClient } from '@/lib/supabase/server';
 import { getRooms } from '@/lib/rooms';
 import SettingsForm from '@/components/SettingsForm';
 import LogoutButton from '@/components/LogoutButton';
-import { CloseIcon } from '@/components/icons';
+import { ChevronDownIcon } from '@/components/icons';
 
-// 설정 화면 (디자인 시안 "앱 설정 드로어" 대응). 슬라이드 드로어 대신 전체화면 페이지로
-// 구현 — 이 세션에서 반복된 "문서화된 단순화" 원칙(글쓰기 이탈모달=window.confirm,
-// 상세화면 이미지=단일 표시 등)과 동일선상. 기능(기본룸/알림/약관/로그아웃)은 시안과 1:1 대응.
+// 설정 화면(디자인 시안 화면 9 "앱 설정 드로어" 대응)의 전체화면 버전. 2026-08-02 시안 통일
+// 작업으로 실제 슬라이드 드로어(헤더 더보기 아이콘 → components/SettingsDrawer.tsx)가
+// 주 진입 경로가 됐고, 이 페이지는 직접 URL로 들어오는 경우를 위한 대체 경로로 남겨둔다
+// (SettingsForm을 그대로 재사용해 두 UI가 항상 같은 로직을 공유).
 export default async function SettingsPage() {
   const supabase = await createClient();
   const {
@@ -27,40 +28,38 @@ export default async function SettingsPage() {
 
   return (
     <main style={{ paddingBottom: 40 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <strong style={{ fontSize: 16 }}>설정</strong>
-        <Link href="/mypage" style={{ display: 'flex' }}>
-          <CloseIcon size={20} color="#333" />
+      <div className="write-header">
+        <Link href="/mypage" style={{ display: 'flex' }} aria-label="뒤로가기">
+          <ChevronDownIcon size={22} color="#111" style={{ transform: 'rotate(90deg)' }} />
         </Link>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>설정</div>
+        <span style={{ width: 22 }} />
       </div>
 
-      <SettingsForm
-        rooms={rooms}
-        initialDefaultRoomId={profile?.default_room_id ?? null}
-        initialPrefs={{
-          notify_vote_feedback: profile?.notify_vote_feedback ?? true,
-          notify_comment_reply: profile?.notify_comment_reply ?? true,
-          notify_monthly_badge: profile?.notify_monthly_badge ?? true,
-        }}
-      />
+      <div className="page-body">
+        <SettingsForm
+          rooms={rooms}
+          initialDefaultRoomId={profile?.default_room_id ?? null}
+          initialPrefs={{
+            notify_vote_feedback: profile?.notify_vote_feedback ?? true,
+            notify_comment_reply: profile?.notify_comment_reply ?? true,
+            notify_monthly_badge: profile?.notify_monthly_badge ?? true,
+          }}
+        />
 
-      <section style={{ marginBottom: 24 }}>
-        <h4 style={{ fontSize: 13, margin: '0 0 8px', color: '#888' }}>서비스 정책</h4>
-        <Link
-          href="/terms"
-          style={{ display: 'block', padding: '12px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13, color: '#111', textDecoration: 'none' }}
-        >
-          서비스 이용약관
-        </Link>
-        <Link
-          href="/privacy"
-          style={{ display: 'block', padding: '12px 0', borderBottom: '1px solid #f0f0f0', fontSize: 13, color: '#111', textDecoration: 'none' }}
-        >
-          개인정보처리방침
-        </Link>
-      </section>
+        <section style={{ marginTop: 16 }}>
+          <Link href="/terms" className="drawer-item">
+            서비스 이용약관
+          </Link>
+          <Link href="/privacy" className="drawer-item">
+            개인정보처리방침
+          </Link>
+        </section>
 
-      <LogoutButton />
+        <div style={{ marginTop: 16 }}>
+          <LogoutButton />
+        </div>
+      </div>
     </main>
   );
 }

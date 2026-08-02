@@ -2,6 +2,20 @@ import { createClient } from '@/lib/supabase/server';
 import { getRoomById, getFlairById } from '@/lib/rooms';
 import type { Post, FeedPost } from '@/lib/types';
 
+// 시안(화면 1/4)의 크라운 아이콘은 항상 노출되는 정적 목업이지만, 실제로는 "현재 유지 중인
+// 배지가 있는 유저"에게만 표시돼야 의미가 있다. monthly_badges의 가장 최근 year_month(=지난달
+// 정산 결과, 이번 달 내내 유지됨) 기준으로 이번 배치의 작성자들 중 배지 보유자 집합만 구한다
+// (전체 monthly_badges를 매번 훑지 않고 in절로 필요한 유저만 조회).
+async function getCurrentBadgeHolderIds(userIds: string[]): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+  const supabase = await createClient();
+  const { data: latest } = await supabase.from('monthly_badges').select('year_month').order('year_month', { ascending: false }).limit(1).maybeSingle();
+  if (!latest) return new Set();
+
+  const { data: rows } = await supabase.from('monthly_badges').select('user_id').eq('year_month', latest.year_month).in('user_id', userIds);
+  return new Set((rows ?? []).map((r) => r.user_id));
+}
+
 // posts.rpc(get_popular_feed / get_room_feed)로 정렬까지 끝난 원본 행을 받아, 화면에 필요한
 // 조인 데이터(룸/플레어/작성자/북마크여부/베스트댓글/내 투표상태)를 붙여 FeedPost로 만든다.
 // Supabase JS는 커스텀 SQL 함수(핫스코어 정렬)의 결과에 임베디드 조인을 못 붙이므로
@@ -12,7 +26,7 @@ async function hydratePosts(posts: Post[], currentUserId: string | null): Promis
   const postIds = posts.map((p) => p.id);
   const userIds = [...new Set(posts.map((p) => p.user_id))];
 
-  const [{ data: profiles }, bookmarkResult, voteResult, { data: comments }] = await Promise.all([
+  const [{ data: profiles }, bookmarkResult, voteResult, { data: comments }, badgeHolderIds] = await Promise.all([
     supabase.from('profiles').select('id, nickname, user_flair').in('id', userIds),
     currentUserId
       ? supabase.from('bookmarks').select('post_id').eq('user_id', currentUserId).in('post_id', postIds)
@@ -30,6 +44,7 @@ async function hydratePosts(posts: Post[], currentUserId: string | null): Promis
       .select('post_id, body, upvote_count, downvote_count')
       .in('post_id', postIds)
       .eq('is_deleted', false),
+    getCurrentBadgeHolderIds(userIds),
   ]);
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
@@ -57,6 +72,7 @@ async function hydratePosts(posts: Post[], currentUserId: string | null): Promis
       flair,
       author_nickname: profile?.nickname ?? '알 수 없음',
       author_user_flair: profile?.user_flair ?? null,
+      author_has_badge: badgeHolderIds.has(post.user_id),
       is_bookmarked: bookmarkedSet.has(post.id),
       best_comment: best && best.net_upvotes > 0 ? best : null,
       my_vote: myVoteMap.get(post.id) ?? 0,

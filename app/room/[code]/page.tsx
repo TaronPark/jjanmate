@@ -5,6 +5,7 @@ import { getRoomFeed } from '@/lib/feed';
 import PostCard from '@/components/PostCard';
 import BottomTabBar from '@/components/BottomTabBar';
 import RoomFeedControls from '@/components/RoomFeedControls';
+import AppHeader from '@/components/AppHeader';
 
 // 2축 룸 피드 (PDF 3-2 ②). 전체 룸 모아보기는 없고 항상 1개 룸을 지정해야 함.
 // 정렬(인기/최신) + 플레어 필터(단일 선택 토글)는 RoomFeedControls(client)가 담당하고,
@@ -39,9 +40,7 @@ export default async function RoomFeedPage({
 
   return (
     <main style={{ paddingBottom: 72 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <strong style={{ fontSize: 16 }}>{room.name}</strong>
-      </div>
+      <AppHeader isLoggedIn={!!user} writeHref={`/write?${writeQuery.toString()}`} />
 
       <RoomFeedControls
         rooms={rooms}
@@ -55,7 +54,7 @@ export default async function RoomFeedPage({
       {posts.length > 0 ? (
         posts.map((post) => <PostCard key={post.id} post={post} />)
       ) : (
-        <p style={{ fontSize: 12, color: '#888', textAlign: 'center', padding: '40px 0' }}>
+        <p style={{ fontSize: 12, color: 'var(--text-sub)', textAlign: 'center', padding: '40px 16px' }}>
           아직 이 룸에 글이 없어요. 첫 글을 남겨보세요!
         </p>
       )}

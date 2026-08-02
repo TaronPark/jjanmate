@@ -130,7 +130,7 @@ Anthropic PBC(Claude API, AI 자동 태깅) — 2026-08-02 피벗으로 AI 자�
 
 export default function PrivacyPage() {
   return (
-    <main>
+    <main className="page-body">
       <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: 13 }}>{PRIVACY_CONTENT}</div>
     </main>
   );

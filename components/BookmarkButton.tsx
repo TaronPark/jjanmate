@@ -31,7 +31,7 @@ export default function BookmarkButton({ postId, initialBookmarked }: { postId: 
     <button
       onClick={handleClick}
       aria-label="북마크"
-      style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: bookmarked ? '#f5a623' : '#bbb' }}
+      style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: bookmarked ? '#111' : '#bbb' }}
     >
       <BookmarkIcon size={18} active={bookmarked} />
     </button>

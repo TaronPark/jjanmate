@@ -36,15 +36,15 @@ export default function CommentForm({ postId, parentCommentId, mentionedNickname
   };
 
   return (
-    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
       <input
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder={parentCommentId ? '답글을 입력해주세요' : '댓글을 입력해주세요'}
         autoFocus={autoFocus}
-        style={{ flex: 1, padding: 8, fontSize: 13, border: '1px solid #ddd', borderRadius: 8 }}
+        style={{ flex: 1, padding: '8px 12px', fontSize: 13, border: 'none', background: 'var(--highlight)', borderRadius: 16 }}
       />
-      <button onClick={handleSubmit} disabled={submitting || !body.trim()} style={{ fontSize: 12, padding: '8px 12px' }}>
+      <button onClick={handleSubmit} disabled={submitting || !body.trim()} className="vote-btn">
         등록
       </button>
       {error && <p style={{ color: '#c0392b', fontSize: 11 }}>{error}</p>}

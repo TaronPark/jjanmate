@@ -3,13 +3,16 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { markNotificationRead } from '@/app/notifications/actions';
-import { CrownIcon, CloseIcon } from './icons';
+import { CrownIcon } from './icons';
 
+// 시안 화면 12 "배지 획득 축하 모달" 대응. 2026-08-02 시안 통일 작업으로 기존 인라인 배너를
+// 실제 overlay+dialog 모달로 교체 — 마이페이지 진입 시 미확인 monthly_badge 알림이 있으면
+// 뜨고, 확인을 누르면 해당 알림을 읽음 처리한다.
 export default function BadgeCelebrationBannerClient({ notificationId, text }: { notificationId: string; text: string }) {
   const router = useRouter();
   const [dismissed, setDismissed] = useState(false);
 
-  const handleDismiss = async () => {
+  const handleConfirm = async () => {
     setDismissed(true);
     await markNotificationRead(notificationId);
     router.refresh();
@@ -18,26 +21,15 @@ export default function BadgeCelebrationBannerClient({ notificationId, text }: {
   if (dismissed) return null;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        background: '#fffcf5',
-        border: '1px solid #e6a822',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-      }}
-    >
-      <CrownIcon size={32} color="#e6a822" />
-      <div style={{ flex: 1 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 2px' }}>축하합니다! 🎉</p>
-        <p style={{ fontSize: 12, color: '#555', margin: 0, lineHeight: 1.4 }}>{text}</p>
+    <div className="overlay">
+      <div className="dialog">
+        <CrownIcon size={48} color="#111" style={{ marginBottom: 12 }} />
+        <div className="dialog-title">축하합니다! 🎉</div>
+        <div className="dialog-desc">{text}</div>
+        <button className="btn btn-primary" onClick={handleConfirm}>
+          확인
+        </button>
       </div>
-      <button onClick={handleDismiss} style={{ border: 'none', background: 'none', padding: 4, flexShrink: 0 }}>
-        <CloseIcon size={16} color="#888" />
-      </button>
     </div>
   );
 }
