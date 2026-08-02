@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTodayKst } from '@/lib/date';
+import { notifyIfEnabled } from '@/lib/notify';
+import { getRoomById } from '@/lib/rooms';
 
 // 월간 활동 보상 배치 (기획서 8장). 매월 1일 00:00(KST) 전월 실적을 스냅샷해 monthly_badges에
 // 기록한다. Vercel Hobby 플랜은 cron 표현식에 "매월 1일 KST 자정" 같은 타임존 인식 스케줄을
@@ -166,6 +168,22 @@ export async function GET() {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // 배지 수상자에게 알림 발송(베스트 에포트 — 알림 실패가 정산 자체를 실패시키지 않도록
+    // insert 성공 이후에 별도로 처리). scope='room'인 경우 알림 문구에 룸 이름을 포함한다.
+    await Promise.all(
+      rows.map(async (row) => {
+        const roomName = row.room_id ? (await getRoomById(row.room_id))?.name ?? null : null;
+        await notifyIfEnabled(row.user_id, 'monthly_badge', {
+          year_month: row.year_month,
+          scope: row.scope,
+          room_id: row.room_id,
+          room_name: roomName,
+          category: row.category,
+          rank: row.rank,
+        });
+      })
+    );
   }
 
   return NextResponse.json({ yearMonth, badgesCreated: rows.length });

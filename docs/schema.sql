@@ -173,7 +173,9 @@ create table public.monthly_badges (
 );
 
 -- ------------------------------------------------------------
--- 11. notifications — 발송 로직 미구현, 테이블만 존재
+-- 11. notifications — 발송 로직: lib/notify.ts(생성) + app/notifications(조회/읽음처리 UI).
+--     생성 트리거: setAuthorAction(vote_feedback), createComment(comment_reply),
+--     monthly-badges 크론(monthly_badge). 항상 service_role로만 insert(자가생성 방지, lib/notify.ts 주석 참고)
 -- ------------------------------------------------------------
 create table public.notifications (
   id uuid primary key default gen_random_uuid(),
