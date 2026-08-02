@@ -438,15 +438,21 @@ export async function GET() {
     if (claimCount <= 0) continue;
     const roomId = roomIds[i];
 
-    const { data: claimed, error: claimError } = await admin
-      .from('seed_contents_pool')
-      .select('id, room_id, flair_id, seed_user_id, title, body, one_line_question')
-      .eq('room_id', roomId)
-      .is('posted_at', null)
-      .order('id', { ascending: true })
-      .limit(claimCount);
+    // claim_seed_pool_items()는 "미발행 항목 조회 → posted_at 갱신"을 UPDATE ... FOR UPDATE
+    // SKIP LOCKED 한 문장으로 원자적으로 처리하는 Postgres 함수(2026-08-02 라이브 테스트 중
+    // 동시 요청 2건이 같은 풀 항목을 중복 발행하는 버그를 발견해 추가 — 기존엔 SELECT로 조회한
+    // 뒤 별도 UPDATE로 posted_at을 표시하는 두 단계 방식이라 그 사이에 다른 요청이 끼어들 수
+    // 있었음). 정상 운영에서는 Vercel 크론이 정시에 1회만 실행되므로 거의 발생하지 않지만,
+    // 수동 중복 트리거나 재시도 상황에서도 안전하도록 방어함.
+    const { data: claimed, error: claimError } = await admin.rpc('claim_seed_pool_items', {
+      p_room_id: roomId,
+      p_limit: claimCount,
+    });
 
-    if (claimError || !claimed || claimed.length === 0) continue;
+    if (claimError || !claimed || claimed.length === 0) {
+      if (claimError) console.error(`시드 풀 클레임 실패 (room=${roomId}):`, claimError.message);
+      continue;
+    }
 
     for (const item of claimed as PoolItem[]) {
       const { data: inserted, error: insertError } = await admin
@@ -467,7 +473,6 @@ export async function GET() {
         continue;
       }
 
-      await admin.from('seed_contents_pool').update({ posted_at: new Date().toISOString() }).eq('id', item.id);
       publishedCount += 1;
 
       voteCount += await castPostVotes(admin, inserted.id, inserted.user_id, seedPersonaIds);
