@@ -188,10 +188,28 @@ create table public.notifications (
 create index notifications_user_idx on public.notifications (user_id, is_read, created_at desc);
 
 -- ------------------------------------------------------------
--- 12. RLS 요약
+-- 12. seed_contents_pool — 시드 콘텐츠 드립 크론(app/api/cron/seed-drip)용 사전 작성 풀.
+--     2026-08-02 피벗으로 6룸×4플레어 기준 24건 재작성, 가상 계정(profiles, 31명, auth.users는
+--     이메일 없는 계정으로 기존 보존됨) 명의로 하루 최대 4건씩 posted_at이 채워지며 게시됨.
+-- ------------------------------------------------------------
+create table public.seed_contents_pool (
+  id uuid primary key default gen_random_uuid(),
+  room_id uuid not null references public.rooms(id),
+  flair_id uuid not null references public.post_flairs(id),
+  seed_user_id uuid not null references public.profiles(id),
+  title text not null,
+  body text not null,
+  one_line_question text,
+  posted_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index seed_contents_pool_unposted_idx on public.seed_contents_pool (created_at) where posted_at is null;
+
+-- ------------------------------------------------------------
+-- 13. RLS 요약
 -- ------------------------------------------------------------
 -- rooms, post_flairs, monthly_badges: 전체 공개 읽기(select using true), 쓰기 없음/service_role만
--- blacklist_words: RLS enabled, 정책 없음 — client 접근 완전 차단
+-- blacklist_words, seed_contents_pool: RLS enabled, 정책 없음 — client 접근 완전 차단
 -- posts, comments: select 전체 공개, insert는 본인(auth.uid()=user_id)만.
 --   수정/삭제(is_deleted, author_action_value 등)는 클라이언트 UPDATE 정책을 열지 않고,
 --   서버 액션이 소유권을 수동 검증한 뒤 service_role(admin) 클라이언트로 처리한다
@@ -199,7 +217,7 @@ create index notifications_user_idx on public.notifications (user_id, is_read, c
 -- votes, bookmarks, drafts, notifications: select/insert/update/delete 모두 본인(auth.uid()=user_id)만.
 
 -- ------------------------------------------------------------
--- 13. 트리거
+-- 14. 트리거
 -- ------------------------------------------------------------
 -- sync_vote_counts(): votes insert/update/delete 시 posts/comments의 upvote_count/downvote_count 자동 갱신
 -- sync_comment_count(): comments insert / is_deleted 토글 시 posts.comment_count 자동 갱신
@@ -207,7 +225,7 @@ create index notifications_user_idx on public.notifications (user_id, is_read, c
 -- (트리거 자체 실행에는 영향 없음 — 하이재킹 방지 목적의 보안 하드닝).
 
 -- ------------------------------------------------------------
--- 14. Hot Score 함수 (docs/짠메이트_DB_스키마_설계_v2.md §3 참고)
+-- 15. Hot Score 함수 (docs/짠메이트_DB_스키마_설계_v2.md §3 참고)
 -- ------------------------------------------------------------
 -- raw_hot_score(upvotes, downvotes, created_at): 룸 피드용. 콜드스타트 실드(최초 2시간 다운보트
 --   50% 가중)는 이 함수 내부 정렬 계산에만 적용되고, posts.upvote_count/downvote_count(화면 표시값)는
