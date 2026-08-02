@@ -157,7 +157,7 @@ create table public.drafts (
 );
 
 -- ------------------------------------------------------------
--- 10. monthly_badges — 월간 배지 스냅샷 (배치 job 미구현, 테이블만 존재)
+-- 10. monthly_badges — 월간 배지 스냅샷 (배치 job: app/api/cron/monthly-badges/route.ts, 매일 KST 00:00 실행 후 1일에만 정산)
 -- ------------------------------------------------------------
 create table public.monthly_badges (
   id uuid primary key default gen_random_uuid(),

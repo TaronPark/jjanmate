@@ -1,3 +1,8 @@
 {
-  "crons": []
+  "crons": [
+    {
+      "path": "/api/cron/monthly-badges",
+      "schedule": "0 15 * * *"
+    }
+  ]
 }
