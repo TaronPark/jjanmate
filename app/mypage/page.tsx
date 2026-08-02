@@ -6,11 +6,12 @@ import { getMyComments } from '@/lib/comments';
 import { getRelativeTimeKo } from '@/lib/date';
 import { getRooms, DEFAULT_ROOM_CODE } from '@/lib/rooms';
 import BottomTabBar from '@/components/BottomTabBar';
-import LogoutButton from '@/components/LogoutButton';
 import UserFlairEditor from '@/components/UserFlairEditor';
 import DeletePostButton from '@/components/DeletePostButton';
 import BookmarkButton from '@/components/BookmarkButton';
-import { BookmarkIcon, TrophyIcon } from '@/components/icons';
+import RewardsTab from '@/components/RewardsTab';
+import BadgeCelebrationBanner from '@/components/BadgeCelebrationBanner';
+import { BookmarkIcon, SettingsIcon } from '@/components/icons';
 
 type Tab = 'posts' | 'comments' | 'bookmarks' | 'rewards';
 
@@ -23,7 +24,7 @@ const TAB_LABELS: Record<Tab, string> = {
 
 // 마이페이지 4탭 (기획서 12장): 게시글/댓글/북마크/보상명예 + 상단 프로필(유저 플레어 편집).
 // 2026-08-02 피벗: 니치/스트릭 프로필 지표를 유저 플레어 편집 UI로 대체.
-export default async function MyPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function MyPage({ searchParams }: { searchParams: Promise<{ tab?: string; sub?: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -52,8 +53,12 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
             <UserFlairEditor initialFlair={profile?.user_flair ?? null} />
           </div>
         </div>
-        <LogoutButton />
+        <Link href="/settings" style={{ display: 'flex', padding: 4 }}>
+          <SettingsIcon size={20} color="#333" />
+        </Link>
       </div>
+
+      <BadgeCelebrationBanner userId={user.id} />
 
       <div style={{ display: 'flex', borderBottom: '1px solid #eee', marginBottom: 12 }}>
         {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
@@ -79,7 +84,7 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
       {tab === 'posts' && <PostsTab userId={user.id} />}
       {tab === 'comments' && <CommentsTab userId={user.id} />}
       {tab === 'bookmarks' && <BookmarksTab userId={user.id} />}
-      {tab === 'rewards' && <RewardsTab userId={user.id} />}
+      {tab === 'rewards' && <RewardsTab userId={user.id} sub={sp.sub} />}
 
       <BottomTabBar active="mypage" isLoggedIn defaultRoomCode={defaultRoomCode} />
     </main>
@@ -175,35 +180,6 @@ async function BookmarksTab({ userId }: { userId: string }) {
           </Link>
         </div>
       ))}
-    </div>
-  );
-}
-
-async function RewardsTab({ userId }: { userId: string }) {
-  const supabase = await createClient();
-  const { data: badges } = await supabase
-    .from('monthly_badges')
-    .select('*')
-    .eq('user_id', userId)
-    .order('year_month', { ascending: false });
-
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 12, color: '#888' }}>
-        <TrophyIcon size={16} /> 명예의 전당 (매월 1일 00:00 정산, 1개월간 유지)
-      </div>
-      {!badges || badges.length === 0 ? (
-        <EmptyState text="아직 집계된 배지가 없어요. 이번 달 활동을 시작해보세요!" />
-      ) : (
-        badges.map((b) => (
-          <div key={b.id} className="card">
-            <p style={{ fontSize: 12, margin: 0 }}>
-              {b.year_month} · {b.scope === 'global' ? '전체' : '룸'} {b.category === 'post' ? '게시글' : '댓글'} {b.rank}위
-            </p>
-            <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>획득 당시 순업보트 {b.score}</p>
-          </div>
-        ))
-      )}
     </div>
   );
 }
