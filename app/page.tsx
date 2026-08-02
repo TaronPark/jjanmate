@@ -1,46 +1,50 @@
 import Link from 'next/link';
-import { NICHES, NICHE_CODES } from '@/lib/niches';
+import { createClient } from '@/lib/supabase/server';
+import { getPopularFeed } from '@/lib/feed';
+import { getRooms, DEFAULT_ROOM_CODE } from '@/lib/rooms';
+import PostCard from '@/components/PostCard';
+import BottomTabBar from '@/components/BottomTabBar';
 
-// 4-A 1번: 비회원 랜딩. 로그인 없이 니치별 인증글 미리보기 노출.
-// TODO(1~2주차): 아래 더미 카드를 실제 posts 테이블 조회(성공 처리된 글, 최신순)로 교체
-export default function LandingPage() {
+// 1축 인기 피드 (PDF 3-1/3-2 ①) — 앱 진입 최초 랜딩 화면. 로그인 여부와 무관하게 열람 가능
+// (구 v1의 "비회원 피드 열람" Must 요건과 동일 원칙 유지). 2026-08-02 피벗으로 기존 랜딩
+// 마케팅 카피 페이지를 대체 — "인기 피드를 기본 랜딩 화면으로 제공"(PDF 3-1) 스펙을 그대로 반영.
+export default async function PopularFeedPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [posts, rooms] = await Promise.all([getPopularFeed(user?.id ?? null), getRooms()]);
+
+  let defaultRoomCode = DEFAULT_ROOM_CODE;
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('default_room_id').eq('id', user.id).maybeSingle();
+    const room = profile?.default_room_id ? rooms.find((r) => r.id === profile.default_room_id) : null;
+    if (room) defaultRoomCode = room.code;
+  }
+
   return (
-    <main>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <main style={{ paddingBottom: 72 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <strong>짠메이트</strong>
-        <Link href="/login">
-          <button>로그인</button>
-        </Link>
+        {!user && (
+          <Link href="/login">
+            <button>로그인</button>
+          </Link>
+        )}
       </div>
 
-      {/* 랜딩 헤드카피 (2026-07-24 니치 개편 반영, 최종 확정본) */}
-      <h1 style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.4, margin: '16px 0 4px' }}>
-        숨막히는 월세도, 못 참은 홧김비용도. 내 맘 가장 잘 아는 동료들끼리.
-      </h1>
-      <p style={{ fontSize: 13, color: '#555', margin: '0 0 16px' }}>
-        맥락 없이 혼나기만 하는 거지방에 지치셨나요? 내 소비 고민과 똑 닮은 동료들이 모인 아지트로 오세요.
-      </p>
+      <h3 style={{ fontSize: 14, margin: '0 0 12px' }}>🔥 지금 인기 있는 글</h3>
 
-      <div style={{ margin: '12px 0' }}>
-        {NICHE_CODES.map((code) => (
-          <span key={code} className="chip">
-            {NICHES[code].label}
-          </span>
-        ))}
-      </div>
+      {posts.length > 0 ? (
+        posts.map((post) => <PostCard key={post.id} post={post} />)
+      ) : (
+        <p style={{ fontSize: 12, color: '#888', textAlign: 'center', padding: '40px 0' }}>
+          아직 인기 글이 없어요. 첫 글의 주인공이 되어보세요!
+        </p>
+      )}
 
-      <div className="card">
-        <p style={{ fontSize: 13, margin: 0 }}>보일러 외출모드로 이번 달 관리비 2만원 방어</p>
-        <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>월세독립군 · 5분 전</p>
-      </div>
-      <div className="card">
-        <p style={{ fontSize: 13, margin: 0 }}>인스타템 방어 성공, 장바구니 비우고 잠들기</p>
-        <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>홧김비용방어 · 20분 전</p>
-      </div>
-
-      <Link href="/onboarding">
-        <button style={{ width: '100%', marginTop: 12 }}>나와 같은 상황인 사람 찾기 →</button>
-      </Link>
+      <BottomTabBar active="popular" isLoggedIn={!!user} defaultRoomCode={defaultRoomCode} />
     </main>
   );
 }

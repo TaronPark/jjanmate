@@ -1,25 +1,29 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getTodayKst, getYesterdayKst, getRelativeTimeKo } from '@/lib/date';
-import type { NicheCode } from '@/lib/niches';
+import { getMyPosts, getBookmarkedPosts } from '@/lib/feed';
+import { getMyComments } from '@/lib/comments';
+import { getRelativeTimeKo } from '@/lib/date';
+import { getRooms, DEFAULT_ROOM_CODE } from '@/lib/rooms';
 import BottomTabBar from '@/components/BottomTabBar';
-import FAB from '@/components/FAB';
 import LogoutButton from '@/components/LogoutButton';
+import UserFlairEditor from '@/components/UserFlairEditor';
+import DeletePostButton from '@/components/DeletePostButton';
+import BookmarkButton from '@/components/BookmarkButton';
+import { BookmarkIcon, TrophyIcon } from '@/components/icons';
 
-// 2026-07-26 (UI/UX 개편 스펙 ①) — 하단 탭바의 [마이페이지]. 닉네임/유효 스트릭/본인 작성
-// 글 전체 목록(미분류 포함)/로그아웃 버튼. 비회원은 URL을 직접 열어도 로그인 화면으로 리다이렉트
-// (탭바 클릭 시 확인창으로 유도하는 것과 별개로, 직접 접근에 대한 방어선).
-//
-// "내가 작성한 글 목록"은 status='success'만이 아니라 low_confidence/system_error도 전체
-// 포함하고, 지금 피드(app/feed/[niche]/page.tsx)와 동일하게 반투명+상태 배지로 노출한다 —
-// 유저가 자신의 글 상태를 직접 인지할 수 있게 하기 위함(사용자 명시적 요청, 2026-07-26).
-const UNCLASSIFIED_LABEL: Record<string, string> = {
-  pending: 'AI 분석 대기 중',
-  low_confidence: '분류 보류 (확신도가 낮아 미분류)',
-  system_error: '일시적 오류로 분류 실패 · 자동 재시도 예정',
+type Tab = 'posts' | 'comments' | 'bookmarks' | 'rewards';
+
+const TAB_LABELS: Record<Tab, string> = {
+  posts: '게시글',
+  comments: '댓글',
+  bookmarks: '북마크',
+  rewards: '보상·명예',
 };
 
-export default async function MyPage() {
+// 마이페이지 4탭 (기획서 12장): 게시글/댓글/북마크/보상명예 + 상단 프로필(유저 플레어 편집).
+// 2026-08-02 피벗: 니치/스트릭 프로필 지표를 유저 플레어 편집 UI로 대체.
+export default async function MyPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,73 +33,186 @@ export default async function MyPage() {
     redirect('/login');
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('nickname, current_streak, last_post_date, onboarding_niche')
-    .eq('id', user.id)
-    .single();
+  const { data: profile } = await supabase.from('profiles').select('nickname, user_flair, default_room_id').eq('id', user.id).single();
 
-  const today = getTodayKst();
-  const yesterday = getYesterdayKst();
-  const effectiveStreak =
-    profile && (profile.last_post_date === today || profile.last_post_date === yesterday)
-      ? profile.current_streak
-      : 0;
+  const sp = await searchParams;
+  const tab: Tab = (['posts', 'comments', 'bookmarks', 'rewards'] as Tab[]).includes(sp.tab as Tab)
+    ? (sp.tab as Tab)
+    : 'posts';
 
-  const { data: posts, error } = await supabase
-    .from('posts')
-    .select('id, content, image_url, created_at, ai_niche, status')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('마이페이지 글 목록 조회 실패:', error.message);
-  }
-
-  const homeNiche: NicheCode = profile?.onboarding_niche ?? 'monthly_rent_fighter';
+  const rooms = await getRooms();
+  const defaultRoomCode = rooms.find((r) => r.id === profile?.default_room_id)?.code ?? DEFAULT_ROOM_CODE;
 
   return (
     <main style={{ paddingBottom: 72 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <strong style={{ fontSize: 16 }}>{profile?.nickname ?? '익명'}</strong>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <div>
+          <strong style={{ fontSize: 16 }}>{profile?.nickname ?? '익명'}</strong>
+          <div style={{ marginTop: 4 }}>
+            <UserFlairEditor initialFlair={profile?.user_flair ?? null} />
+          </div>
+        </div>
         <LogoutButton />
       </div>
-      {effectiveStreak > 0 && (
-        <p style={{ fontSize: 12, color: '#555', margin: '0 0 16px' }}>🔥 {effectiveStreak}일 연속</p>
-      )}
 
-      <h3 style={{ fontSize: 13, margin: '8px 0' }}>내가 쓴 글</h3>
+      <div style={{ display: 'flex', borderBottom: '1px solid #eee', marginBottom: 12 }}>
+        {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
+          <Link
+            key={t}
+            href={`/mypage?tab=${t}`}
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              padding: '8px 0',
+              fontSize: 12,
+              textDecoration: 'none',
+              color: tab === t ? '#f5a623' : '#888',
+              fontWeight: tab === t ? 700 : 400,
+              borderBottom: tab === t ? '2px solid #f5a623' : '2px solid transparent',
+            }}
+          >
+            {TAB_LABELS[t]}
+          </Link>
+        ))}
+      </div>
 
-      {posts && posts.length > 0 ? (
-        posts.map((post) => {
-          const unclassifiedLabel = post.status !== 'success' ? UNCLASSIFIED_LABEL[post.status] : null;
-          return (
-            <div key={post.id} className="card" style={unclassifiedLabel ? { opacity: 0.6 } : undefined}>
-              {unclassifiedLabel && (
-                <span className="chip" style={{ marginBottom: 6, display: 'inline-block' }}>
-                  {unclassifiedLabel}
+      {tab === 'posts' && <PostsTab userId={user.id} />}
+      {tab === 'comments' && <CommentsTab userId={user.id} />}
+      {tab === 'bookmarks' && <BookmarksTab userId={user.id} />}
+      {tab === 'rewards' && <RewardsTab userId={user.id} />}
+
+      <BottomTabBar active="mypage" isLoggedIn defaultRoomCode={defaultRoomCode} />
+    </main>
+  );
+}
+
+async function PostsTab({ userId }: { userId: string }) {
+  const posts = await getMyPosts(userId);
+  if (posts.length === 0) {
+    return <EmptyState text="아직 작성한 글이 없어요." />;
+  }
+  return (
+    <div>
+      {posts.map((post) => {
+        const statusLabel =
+          post.author_action_value === 'a'
+            ? post.flair.action_label_a
+            : post.author_action_value === 'b'
+              ? post.flair.action_label_b
+              : null;
+        return (
+          <div key={post.id} className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Link href={`/room/${post.room.code}`} style={{ fontSize: 11, color: '#888', textDecoration: 'none' }}>
+                {post.room.name} · {post.flair.label}
+              </Link>
+              {statusLabel && (
+                <span className="chip" style={{ fontSize: 10, background: '#fef3c7', color: '#92400e' }}>
+                  {statusLabel}
                 </span>
               )}
-              <p style={{ fontSize: 13, margin: '0 0 6px' }}>{post.content}</p>
-              {post.image_url && (
-                <img
-                  src={post.image_url}
-                  alt="첨부 이미지"
-                  style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 8, marginBottom: 6 }}
-                />
-              )}
-              <p style={{ fontSize: 11, color: '#888', margin: 0 }}>{getRelativeTimeKo(post.created_at)}</p>
             </div>
-          );
-        })
-      ) : (
-        <p style={{ fontSize: 12, color: '#888', textAlign: 'center', padding: '24px 0' }}>
-          아직 작성한 글이 없어요.
-        </p>
-      )}
+            <Link href={`/post/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <p style={{ fontSize: 13, fontWeight: 600, margin: '6px 0 2px' }}>{post.title}</p>
+            </Link>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+              <span style={{ fontSize: 11, color: '#888' }}>
+                {getRelativeTimeKo(post.created_at)} · ↑{post.upvote_count - post.downvote_count} · 댓글 {post.comment_count}
+              </span>
+              <DeletePostButton postId={post.id} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
-      <FAB niche={homeNiche} />
-      <BottomTabBar active="mypage" isLoggedIn homeNiche={homeNiche} />
-    </main>
+async function CommentsTab({ userId }: { userId: string }) {
+  const comments = await getMyComments(userId);
+  if (comments.length === 0) {
+    return <EmptyState text="아직 작성한 댓글이 없어요." />;
+  }
+  return (
+    <div>
+      {comments.map((c) => (
+        <div key={c.id} className="card">
+          <Link href={`/room/${c.room_code}`} style={{ fontSize: 11, color: '#888', textDecoration: 'none' }}>
+            🔗 원글: {c.post_title}
+          </Link>
+          <p style={{ fontSize: 13, margin: '6px 0 4px' }}>{c.body}</p>
+          <span style={{ fontSize: 11, color: '#888' }}>
+            {getRelativeTimeKo(c.created_at)} · ↑{c.upvote_count - c.downvote_count}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+async function BookmarksTab({ userId }: { userId: string }) {
+  const posts = await getBookmarkedPosts(userId);
+  if (posts.length === 0) {
+    return <EmptyState text="아직 북마크한 글이 없어요." />;
+  }
+  return (
+    <div>
+      {posts.map((post) => (
+        <div key={post.id} className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Link href={`/room/${post.room.code}`} style={{ fontSize: 11, color: '#888', textDecoration: 'none', marginRight: 6 }}>
+                {post.room.name}
+              </Link>
+              <Link href={`/room/${post.room.code}?flair=${post.flair.code}`} style={{ fontSize: 11, color: '#888', textDecoration: 'none' }}>
+                {post.flair.label}
+              </Link>
+            </div>
+            <BookmarkButton postId={post.id} initialBookmarked />
+          </div>
+          <Link href={`/post/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <p style={{ fontSize: 13, fontWeight: 600, margin: '6px 0 2px' }}>{post.title}</p>
+          </Link>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+async function RewardsTab({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const { data: badges } = await supabase
+    .from('monthly_badges')
+    .select('*')
+    .eq('user_id', userId)
+    .order('year_month', { ascending: false });
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 12, color: '#888' }}>
+        <TrophyIcon size={16} /> 명예의 전당 (매월 1일 00:00 정산, 1개월간 유지)
+      </div>
+      {!badges || badges.length === 0 ? (
+        <EmptyState text="아직 집계된 배지가 없어요. 이번 달 활동을 시작해보세요!" />
+      ) : (
+        badges.map((b) => (
+          <div key={b.id} className="card">
+            <p style={{ fontSize: 12, margin: 0 }}>
+              {b.year_month} · {b.scope === 'global' ? '전체' : '룸'} {b.category === 'post' ? '게시글' : '댓글'} {b.rank}위
+            </p>
+            <p style={{ fontSize: 11, color: '#888', margin: '4px 0 0' }}>획득 당시 순업보트 {b.score}</p>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '40px 0', color: '#888', fontSize: 12 }}>
+      <BookmarkIcon size={24} color="#ddd" />
+      <p style={{ marginTop: 8 }}>{text}</p>
+    </div>
   );
 }

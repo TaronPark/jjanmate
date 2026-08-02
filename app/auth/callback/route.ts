@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { NicheCode } from '@/lib/niches';
 
 // 카카오 로그인 완료 후 돌아오는 콜백. 인가 코드를 세션(쿠키)으로 교환한 뒤,
 // profiles 로우 존재 여부로 분기한다.
-// - 최초 로그인(프로필 없음): 온보딩에서 고른 niche와 함께 /nickname으로 이동
-// - 재방문(프로필 있음): 닉네임 화면을 건너뛰고 본인이 이미 선택한 홈룸(onboarding_niche)
-//   피드로 바로 이동 — 매번 닉네임을 다시 입력하게 하는 건 나쁜 UX라 2026-07-25 추가.
+// 2026-08-02 피벗: niche 쿼리파라미터/온보딩 홈룸 분기 로직 전면 제거 — 룸이 6개 고정
+// 카탈로그로 바뀌면서 "가입 시점에 홈룸을 고른다"는 개념 자체가 없어짐(둘러보기/글쓰기에서
+// 그때그때 룸을 고르는 구조). 재방문 유저도 신규 유저와 동일하게 인기 피드('/')로 보낸다.
+// - 최초 로그인(프로필 없음): /nickname으로 이동
+// - 재방문(프로필 있음): 인기 피드('/')로 바로 이동
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const fallbackNiche = (searchParams.get('niche') as NicheCode) || 'monthly_rent_fighter';
 
   if (code) {
     const supabase = await createClient();
@@ -19,14 +19,14 @@ export async function GET(request: Request) {
     if (!error && data.user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('onboarding_niche')
+        .select('id')
         .eq('id', data.user.id)
         .maybeSingle();
 
       if (profile) {
-        return NextResponse.redirect(`${origin}/feed/${profile.onboarding_niche}`);
+        return NextResponse.redirect(`${origin}/`);
       }
-      return NextResponse.redirect(`${origin}/nickname?niche=${fallbackNiche}`);
+      return NextResponse.redirect(`${origin}/nickname`);
     }
   }
 

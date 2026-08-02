@@ -1,21 +1,15 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import type { NicheCode } from '@/lib/niches';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { saveNickname } from './actions';
 
-// 4-A 신규 단계 (2026-07-25 추가): 로그인 직후, 첫 게시 전에 자체 닉네임을 직접 입력받는 화면.
-// 판단 근거: 카카오 닉네임/프로필 사진을 그대로 가져오면 소비 실패 인증 같은 민감한 내용이
-// 실명·카톡 프로필 사진과 엮여 거부감을 유발할 수 있음(4-C 참고). 짠메이트 내부에서만 쓰는
-// 별도 닉네임을 직접 입력받는 쪽이 "무해한 연대" 톤과 마스킹 전략(4-A 3번)과도 일관됨.
-// 2026-07-25: 실제 profiles upsert를 Server Action(actions.ts)으로 연동.
+// 로그인 직후, 첫 게시 전에 자체 닉네임을 직접 입력받는 화면.
+// 2026-08-02 피벗: niche 쿼리파라미터 의존 제거 — 저장 후 인기 피드('/')로 이동.
 // 재방문 유저(이미 profiles 존재)는 이 화면 자체에 도달하지 않음 — app/auth/callback/route.ts가
 // 로그인 직후 profiles 존재 여부로 미리 분기해서 여기로는 신규 유저만 들어옴.
-function NicknameContent() {
+export default function NicknamePage() {
   const router = useRouter();
-  const params = useSearchParams();
-  const niche = (params.get('niche') as NicheCode) || 'monthly_rent_fighter';
   const [nickname, setNickname] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -23,13 +17,13 @@ function NicknameContent() {
   const handleSubmit = async () => {
     setSaving(true);
     setError('');
-    const result = await saveNickname(nickname, niche);
+    const result = await saveNickname(nickname);
     if (result.error) {
       setError(result.error);
       setSaving(false);
       return;
     }
-    router.push(`/post?niche=${niche}`);
+    router.push('/');
   };
 
   return (
@@ -50,13 +44,5 @@ function NicknameContent() {
         {saving ? '저장 중...' : '시작하기'}
       </button>
     </main>
-  );
-}
-
-export default function NicknamePage() {
-  return (
-    <Suspense fallback={null}>
-      <NicknameContent />
-    </Suspense>
   );
 }
