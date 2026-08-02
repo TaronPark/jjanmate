@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getKstDaysSinceLaunch, getKstHour } from '@/lib/date';
+import { getKstDaysSinceLaunch, getKstHour, getTodayKst } from '@/lib/date';
 
 // 시드 콘텐츠 드립 크론 (기획서 §8-3항 "시드 콘텐츠 고지·면책" 대응, 이용약관 제8조 3항).
 //
@@ -383,6 +383,17 @@ export async function GET() {
   const launchDate = process.env.SEED_DRIP_LAUNCH_DATE;
   if (!launchDate) {
     return NextResponse.json({ skipped: true, reason: '런칭일(SEED_DRIP_LAUNCH_DATE) 미설정 — 드립 대기 중' });
+  }
+
+  // getKstDaysSinceLaunch는 "아직 런칭 전이어도 1일차로 clamp"하도록 만들어져 있다(v1 설계 —
+  // 배포 직후 수동 테스트 트리거에서 Phase 1을 미리 볼 수 있게 하려는 의도). 그런데 이번엔
+  // SEED_DRIP_LAUNCH_DATE를 미래 날짜(예: 2026-09-05)로 미리 등록해두고 그 전까지는 크론이
+  // 스케줄대로 돌아도 아무 것도 하지 않길 원하므로, clamp에 기대지 않고 오늘 날짜와 런칭일을
+  // 문자열로 직접 비교해 명시적으로 막는다('YYYY-MM-DD' 포맷은 사전식 비교가 곧 날짜 비교와
+  // 같아 별도 파싱 없이 안전하게 비교 가능).
+  const todayKst = getTodayKst();
+  if (todayKst < launchDate) {
+    return NextResponse.json({ skipped: true, reason: `런칭일(${launchDate}) 이전 — 대기 중`, todayKst });
   }
 
   const daysSinceLaunch = getKstDaysSinceLaunch(launchDate);
