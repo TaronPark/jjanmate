@@ -19,19 +19,20 @@ export default async function RoomFeedPage({
 }) {
   const { code } = await params;
   const sp = await searchParams;
+  const supabase = await createClient();
 
-  const [room, rooms] = await Promise.all([getRoomByCode(code), getRooms()]);
+  // 룸 조회 + 룸 목록 + 로그인 유저 확인은 서로 의존관계가 없으므로 병렬 처리한다.
+  // (이전엔 순차 await 4~5개가 이어져서 룸 드롭다운으로 룸을 바꿀 때마다 Supabase 왕복이
+  // 누적되어 체감 지연이 컸음 — 성능 개선 포인트)
+  const [room, rooms, {
+    data: { user },
+  }] = await Promise.all([getRoomByCode(code), getRooms(), supabase.auth.getUser()]);
   if (!room) notFound();
 
   const flairs = await getFlairsByRoomId(room.id);
   const sort: 'hot' | 'new' = sp.sort === 'new' ? 'new' : 'hot';
   const activeFlair = sp.flair ? flairs.find((f) => f.code === sp.flair) : undefined;
   const hasExplicitParams = sp.sort !== undefined || sp.flair !== undefined;
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const posts = await getRoomFeed(room.id, activeFlair?.id ?? null, sort, user?.id ?? null);
 

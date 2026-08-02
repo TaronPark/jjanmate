@@ -13,11 +13,15 @@ import { ChevronDownIcon } from '@/components/icons';
 // 드롭다운, 현재는 표시만) + post-card 리스트로 재작성. 알림 진입점은 헤더 더보기 드로어로 이동.
 export default async function PopularFeedPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 로그인 확인과 룸 목록 조회는 서로 무관하므로 병렬 처리(불필요한 순차 왕복 제거).
+  const [
+    {
+      data: { user },
+    },
+    rooms,
+  ] = await Promise.all([supabase.auth.getUser(), getRooms()]);
 
-  const [posts, rooms] = await Promise.all([getPopularFeed(user?.id ?? null), getRooms()]);
+  const posts = await getPopularFeed(user?.id ?? null);
 
   let defaultRoomCode = DEFAULT_ROOM_CODE;
   if (user) {

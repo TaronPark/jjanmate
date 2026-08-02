@@ -849,3 +849,21 @@ main {
 .nav-item.active {
   color: var(--text-main);
 }
+
+/* loading.tsx 스켈레톤 전용 — 룸/피드 전환 시 서버 응답을 기다리는 동안(특히 룸 드롭박스로
+   룸을 바꿀 때) 빈 화면 대신 즉시 시각 피드백을 준다. 실제 데이터 지연 자체를 없애진 않지만
+   "반응이 없다"는 체감을 크게 줄여준다. */
+.skeleton-block {
+  border-radius: 8px;
+  background: var(--highlight);
+  animation: skeleton-pulse 1.1s ease-in-out infinite;
+}
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}

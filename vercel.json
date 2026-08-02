@@ -3,10 +3,6 @@
     {
       "path": "/api/cron/monthly-badges",
       "schedule": "0 15 * * *"
-    },
-    {
-      "path": "/api/cron/seed-drip",
-      "schedule": "0 2 * * *"
     }
   ]
 }
