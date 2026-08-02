@@ -215,6 +215,12 @@ create index seed_contents_pool_unposted_idx on public.seed_contents_pool (creat
 --   서버 액션이 소유권을 수동 검증한 뒤 service_role(admin) 클라이언트로 처리한다
 --   (app/post/[id]/actions.ts, app/mypage/actions.ts 참고) — count 컬럼 클라이언트 변조 방지 목적.
 -- votes, bookmarks, drafts, notifications: select/insert/update/delete 모두 본인(auth.uid()=user_id)만.
+-- profiles: select 전체 공개, insert/update는 본인(auth.uid()=id)만 — user_flair/notify_*/
+--   default_room_id 등 자기 설정값 자유 수정. (2026-08-02 성능 하드닝 시 update 정책 누락 발견해 추가:
+--   기존엔 insert만 있고 update가 없어 app/mypage/actions.ts::updateUserFlair가 RLS에 막혀
+--   조용히 실패하는 버그가 있었음.)
+-- 모든 본인 소유 RLS 정책은 auth.uid()를 (select auth.uid())로 감싸 행별 재평가를 방지함
+-- (Supabase 성능 어드바이저 auth_rls_initplan 권장 패턴, 2026-08-02 일괄 적용).
 
 -- ------------------------------------------------------------
 -- 14. 트리거
