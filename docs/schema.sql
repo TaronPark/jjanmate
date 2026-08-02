@@ -1,147 +1,217 @@
 -- ============================================================
--- 짠메이트 MVP DB 스키마
--- 대상: Supabase (PostgreSQL)
--- 설계 근거: 짠메이트_DB설계_ERD.md 참고
--- 작성일: 2026-07-20 / 갱신일: 2026-07-25
---   2026-07-21: reactions 테이블 추가 (당시 아직 실제 Supabase 프로젝트 미적용)
---   2026-07-24: 니치 전면 개편(생애주기→소비 페인포인트)에 따라 CHECK 제약값 교체
---     (self_catering/low_income_worker/no_spend_challenge →
---      monthly_rent_fighter/impulse_expense_defender/lurker_lounge)
---   2026-07-25: nickname 컬럼 코멘트 추가 — 카카오 닉네임이 아니라 로그인 직후 유저가
---     직접 입력한 값을 저장하기로 결정 (컬럼 타입/제약조건 자체는 변경 없음)
---   2026-07-25: 실제 Supabase 프로젝트에 마이그레이션 적용 완료 —
---     profiles/posts/matching_previews 3개 테이블 CHECK 제약조건을 신규 니치 코드로 교체,
---     reactions 테이블 신규 생성, 4개 테이블 RLS 정책 적용까지 모두 반영됨
---     (마이그레이션명: niche_migration_reactions_table_rls_policies).
---     이제 이 schema.sql은 실제 DB 상태와 일치함.
+-- 짠메이트 MVP DB 스키마 v2 (레딧형 업보트 커뮤니티)
+-- 대상: Supabase (PostgreSQL), project ref: tmawuxjllizzixancfyg
+-- 설계 근거: docs/짠메이트_DB_스키마_설계_v2.md
+-- 작성일: 2026-08-02 (피벗 — 니치/AI태깅 기반 v1 스키마 전면 대체)
+--
+-- 이 파일은 실제 Supabase 프로젝트에 적용된 마이그레이션들을 시간순으로 재구성한
+-- 참고용 사본이다. 실제 DB 상태가 진실원이며, 마이그레이션 이력은 Supabase 대시보드
+-- Database > Migrations에서 확인 가능(마이그레이션명 접두어: create_rooms_and_flairs,
+-- create_blacklist_words, alter_profiles_for_pivot, drop_legacy_niche_tables,
+-- create_posts_and_comments, enable_rls_and_policies, vote_and_comment_count_triggers,
+-- hot_score_functions, security_hardening_functions, feed_rpc_functions).
 -- ============================================================
 
--- uuid 자동생성 함수 확장 (Supabase는 기본 활성화된 경우가 많지만 명시)
 create extension if not exists "pgcrypto";
 
 -- ------------------------------------------------------------
--- 1. profiles
---    auth.users(Supabase가 관리하는 로그인 테이블)에 1:1로 붙는
---    짠메이트 전용 사용자 정보 테이블
---    로그인 프로바이더는 카카오 단일(MVP 범위) — Supabase Auth 설정값이라 이 테이블 구조와 무관
+-- 1. rooms — 6대 메인 룸(고정)
+-- ------------------------------------------------------------
+create table public.rooms (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  name text not null,
+  subtitle text not null,
+  display_order int unique not null,
+  created_at timestamptz not null default now()
+);
+
+-- 시드: 자취룸/C발비용/식비절약/티끌모으기/직장생활/짠수다 (display_order 1~6)
+
+-- ------------------------------------------------------------
+-- 2. post_flairs — 룸당 4개, 총 24개 고정 플레어
+-- ------------------------------------------------------------
+create table public.post_flairs (
+  id uuid primary key default gen_random_uuid(),
+  room_id uuid not null references public.rooms(id) on delete cascade,
+  code text not null,
+  label text not null,
+  vote_up_label text not null default '추천',
+  vote_down_label text not null default '비추',
+  show_ratio_bar boolean not null default false,       -- 투표형 4종만 true
+  has_one_click_action boolean not null default false,  -- 투표형 4종만 true
+  action_label_a text,
+  action_label_b text,  -- 룸 제안처럼 단일 옵션이면 null
+  display_order int not null,
+  unique(room_id, code),
+  unique(room_id, display_order)
+);
+
+-- ------------------------------------------------------------
+-- 3. blacklist_words — 유저 플레어 금지어 (client 접근 불가, service_role 전용)
+-- ------------------------------------------------------------
+create table public.blacklist_words (
+  id uuid primary key default gen_random_uuid(),
+  word text unique not null,
+  category text not null check (category in ('impersonation','explicit','hate_politics','profanity','spam_commercial','system_bypass')),
+  created_at timestamptz not null default now()
+);
+-- RLS enabled, 정책 없음(의도적) — client는 절대 조회 불가, lib/blacklist.ts가 admin 클라이언트로만 접근
+
+-- ------------------------------------------------------------
+-- 4. profiles (v1에서 니치/스트릭 컬럼 제거, 유저플레어/알림설정/기본룸 추가)
 -- ------------------------------------------------------------
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   nickname text not null,
-  -- 내부 고정 코드. 한글 표시명은 DB가 아니라 앱 코드(niches.ts)에서 매핑함 — 이름 변경 시 DB 무변경.
-  onboarding_niche text not null
-    check (onboarding_niche in ('monthly_rent_fighter', 'impulse_expense_defender', 'lurker_lounge')),
-  current_streak int not null default 0,
-  longest_streak int not null default 0,
-  last_post_date date,
+  user_flair text check (char_length(user_flair) <= 5),
+  notify_vote_feedback boolean not null default true,
+  notify_comment_reply boolean not null default true,
+  notify_monthly_badge boolean not null default true,
+  default_room_id uuid references public.rooms(id),
   created_at timestamptz not null default now()
 );
 
-comment on table public.profiles is '짠메이트 사용자 프로필. auth.users(id)와 1:1 연결.';
-comment on column public.profiles.nickname is '로그인 직후 유저가 직접 입력한 짠메이트 전용 닉네임. 카카오 닉네임/프로필사진은 가져오지 않음(2026-07-25 결정, ERD 2-1 판단 이유 참고).';
-comment on column public.profiles.onboarding_niche is '가입 시 유저가 직접 선택한 니치 (AI 판정값과 별개, niche_hint_mismatch 계산의 기준값)';
-
-create index idx_profiles_onboarding_niche on public.profiles (onboarding_niche);
-
 -- ------------------------------------------------------------
--- 2. posts
---    게시글 + AI 태깅 파이프라인 결과 (기획서 6번 섹션 스키마 반영)
+-- 5. posts
 -- ------------------------------------------------------------
 create table public.posts (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.profiles(id) on delete cascade,
-  content text not null check (char_length(content) <= 300),
-  image_url text,
-
-  -- AI 태깅 결과 (기획서 6번: niche, niche_hint_mismatch, subtags[], is_spam, spam_reason, confidence, status)
-  ai_niche text
-    check (ai_niche is null or ai_niche in ('monthly_rent_fighter', 'impulse_expense_defender', 'lurker_lounge')),
-  niche_hint_mismatch boolean,
-  subtags text[] check (subtags is null or array_length(subtags, 1) <= 3),
-  is_spam boolean not null default false,
-  spam_reason text,
-  confidence numeric(4,3), -- 0.000 ~ 1.000
-
-  -- 처리 상태: pending(대기) -> success / low_confidence / system_error
-  -- pending은 기획서 원 스키마엔 없으나, "게시 직후 실시간 태깅 전" 구간을 표현하기 위해 추가함 (ERD 문서 판단 이유 참고)
-  status text not null default 'pending'
-    check (status in ('pending', 'success', 'low_confidence', 'system_error')),
-  retry_count int not null default 0 check (retry_count <= 3),
-
-  created_at timestamptz not null default now()
+  user_id uuid not null references public.profiles(id),
+  room_id uuid not null references public.rooms(id),
+  flair_id uuid not null references public.post_flairs(id),
+  title text not null check (char_length(title) >= 2),
+  body text not null,
+  one_line_question text,
+  image_urls text[],
+  upvote_count int not null default 0,
+  downvote_count int not null default 0,
+  author_action_value text check (author_action_value in ('a','b')),
+  author_action_completed_at timestamptz,
+  comment_count int not null default 0,
+  is_deleted boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
-
-comment on table public.posts is '지출/무지출 게시글 + AI 태깅 결과. 스팸 판정 글도 삭제하지 않고 is_spam 플래그로만 격리.';
-comment on column public.posts.status is 'pending: 태깅 대기 / success: 정상 분류 / low_confidence: 확신도 낮아 미분류(재시도 안함) / system_error: 시스템 오류(최대 3회 재시도)';
-
--- 태그별 피드 조회용 (가장 자주 실행되는 쿼리 패턴)
-create index idx_posts_niche_feed
-  on public.posts (ai_niche, is_spam, created_at desc)
-  where status = 'success';
-
--- 스트릭 계산용 (유저별 최근 게시 이력 조회)
-create index idx_posts_user_created
-  on public.posts (user_id, created_at desc);
-
--- 재시도 큐 조회용 (system_error 인 것만 빠르게 스캔)
-create index idx_posts_retry_queue
-  on public.posts (status, retry_count)
-  where status = 'system_error';
+create index posts_room_created_idx on public.posts (room_id, created_at desc);
+create index posts_created_idx on public.posts (created_at desc);
+create index posts_user_idx on public.posts (user_id);
 
 -- ------------------------------------------------------------
--- 3. matching_previews
---    가입 전 "이런 사람들과 매칭됩니다" 정적 프리뷰 캐시
---    (기획서 5번: 5주차 시드 콘텐츠 기반, 일 1회 배치 갱신)
---    2026-07-21: 블러 처리 폐기 — preview_snapshot에는 시드 콘텐츠 본문을 그대로 저장하고,
---    작성자 표시는 프론트에서 "[{니치} 동료]"로만 마스킹 (DB 구조 변경 없음)
+-- 6. comments — 1-Depth 스레드 (parent_comment_id는 항상 최상위 댓글만 가리킴, 앱에서 강제)
 -- ------------------------------------------------------------
-create table public.matching_previews (
-  id uuid primary key default gen_random_uuid(),
-  niche text not null unique
-    check (niche in ('monthly_rent_fighter', 'impulse_expense_defender', 'lurker_lounge')),
-  preview_snapshot jsonb not null,
-  generated_at timestamptz not null default now()
-);
-
-comment on table public.matching_previews is '니치별 매칭 미리보기 캐시. 하루 1회 배치(cron)가 upsert로 갱신. 본문은 실제 시드 콘텐츠 그대로, 작성자만 프론트에서 마스킹.';
-
--- ------------------------------------------------------------
--- 4. reactions  (2026-07-21 신규 추가 — 원클릭 공감 반응, Must 승격)
---    "무해한 연대" 톤앤매너를 구현하는 저비용 리텐션 장치.
---    댓글보다 참여 장벽이 낮음. 유니크 제약으로 중복 클릭 방지.
--- ------------------------------------------------------------
-create table public.reactions (
+create table public.comments (
   id uuid primary key default gen_random_uuid(),
   post_id uuid not null references public.posts(id) on delete cascade,
-  user_id uuid not null references public.profiles(id) on delete cascade,
-  reaction_type text not null check (reaction_type in ('cheer', 'me_too')),
-  created_at timestamptz not null default now(),
+  parent_comment_id uuid references public.comments(id) on delete cascade,
+  user_id uuid not null references public.profiles(id),
+  mentioned_nickname text,
+  body text not null,
+  upvote_count int not null default 0,
+  downvote_count int not null default 0,
+  is_deleted boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index comments_post_parent_idx on public.comments (post_id, parent_comment_id, created_at);
 
-  unique (post_id, user_id, reaction_type)
+-- ------------------------------------------------------------
+-- 7. votes — post/comment 통합, 트리거로 upvote_count/downvote_count 자동 갱신
+-- ------------------------------------------------------------
+create table public.votes (
+  id uuid primary key default gen_random_uuid(),
+  target_type text not null check (target_type in ('post','comment')),
+  target_id uuid not null,
+  user_id uuid not null references public.profiles(id),
+  value smallint not null check (value in (-1, 1)),
+  created_at timestamptz not null default now(),
+  unique (target_type, target_id, user_id)
+);
+create index votes_target_idx on public.votes (target_type, target_id);
+
+-- ------------------------------------------------------------
+-- 8. bookmarks
+-- ------------------------------------------------------------
+create table public.bookmarks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (user_id, post_id)
+);
+create index bookmarks_user_idx on public.bookmarks (user_id, created_at desc);
+
+-- ------------------------------------------------------------
+-- 9. drafts — 유저당 1개, 당일 24:00(KST) 만료
+-- ------------------------------------------------------------
+create table public.drafts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references public.profiles(id),
+  room_id uuid references public.rooms(id),
+  flair_id uuid references public.post_flairs(id),
+  title text,
+  body text,
+  one_line_question text,
+  image_urls text[],
+  updated_at timestamptz not null default now(),
+  expires_at timestamptz not null
 );
 
-comment on table public.reactions is '게시글에 대한 원클릭 공감 반응 (cheer=대단해요, me_too=나도 절약중). 유저당 글당 반응타입별 1회만 허용.';
+-- ------------------------------------------------------------
+-- 10. monthly_badges — 월간 배지 스냅샷 (배치 job 미구현, 테이블만 존재)
+-- ------------------------------------------------------------
+create table public.monthly_badges (
+  id uuid primary key default gen_random_uuid(),
+  year_month text not null,
+  scope text not null check (scope in ('room','global')),
+  room_id uuid references public.rooms(id),
+  category text not null check (category in ('post','comment')),
+  rank smallint not null check (rank in (1,2,3)),
+  user_id uuid not null references public.profiles(id),
+  score int not null,
+  created_at timestamptz not null default now(),
+  unique (year_month, scope, room_id, category, rank)
+);
 
--- 게시글 카드에 반응 개수 집계해서 보여줄 때 조회용
-create index idx_reactions_post on public.reactions (post_id);
+-- ------------------------------------------------------------
+-- 11. notifications — 발송 로직 미구현, 테이블만 존재
+-- ------------------------------------------------------------
+create table public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id),
+  type text not null check (type in ('vote_feedback','comment_reply','monthly_badge')),
+  payload jsonb not null,
+  is_read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index notifications_user_idx on public.notifications (user_id, is_read, created_at desc);
 
--- ============================================================
--- Row Level Security(RLS) — 2026-07-25 실제 Supabase 프로젝트에 적용 완료
--- (마이그레이션명: niche_migration_reactions_table_rls_policies)
--- 4개 테이블 모두 RLS ON + 아래 정책 적용. 명시되지 않은 동작(예: posts UPDATE)은
--- 정책을 만들지 않아 RLS 기본 거부(Deny)가 그대로 유지됨.
---
--- [profiles] insert: 본인 id로만 생성(authenticated) / select: 전체 공개(public)
---            / update: 본인만(authenticated) — 주의: current_streak 등 통계 필드의
---            클라이언트 직접 조작 방지는 컬럼 단위로 막지 않았음. 4주차 스트릭 로직 구현 시
---            백엔드(Edge Function 등) 단에서 별도 통제 필요.
--- [posts]    insert: 본인 user_id로만 생성(authenticated)
---            / select: status='success' AND is_spam=false 는 누구나(public), 작성자 본인은
---            상태 무관 항상 조회 가능 / delete: 작성자 본인만(authenticated)
---            / update: 정책 없음(의도적) — MVP에 게시글 수정 기능이 없고, status/ai_niche/
---            is_spam 등 AI 파이프라인 전용 필드를 유저가 직접 조작(스팸 필터 우회)하는 것을
---            막기 위해 UPDATE는 전부 차단
--- [matching_previews] select: 전체 공개(public) / insert·update·delete: 정책 없음
---            (배치 갱신 스크립트는 service_role 키로 RLS 우회)
--- [reactions] insert·delete: 본인 반응만(authenticated) / select: 전체 공개(public)
--- ============================================================
+-- ------------------------------------------------------------
+-- 12. RLS 요약
+-- ------------------------------------------------------------
+-- rooms, post_flairs, monthly_badges: 전체 공개 읽기(select using true), 쓰기 없음/service_role만
+-- blacklist_words: RLS enabled, 정책 없음 — client 접근 완전 차단
+-- posts, comments: select 전체 공개, insert는 본인(auth.uid()=user_id)만.
+--   수정/삭제(is_deleted, author_action_value 등)는 클라이언트 UPDATE 정책을 열지 않고,
+--   서버 액션이 소유권을 수동 검증한 뒤 service_role(admin) 클라이언트로 처리한다
+--   (app/post/[id]/actions.ts, app/mypage/actions.ts 참고) — count 컬럼 클라이언트 변조 방지 목적.
+-- votes, bookmarks, drafts, notifications: select/insert/update/delete 모두 본인(auth.uid()=user_id)만.
+
+-- ------------------------------------------------------------
+-- 13. 트리거
+-- ------------------------------------------------------------
+-- sync_vote_counts(): votes insert/update/delete 시 posts/comments의 upvote_count/downvote_count 자동 갱신
+-- sync_comment_count(): comments insert / is_deleted 토글 시 posts.comment_count 자동 갱신
+-- 둘 다 SECURITY DEFINER + search_path=public 고정, anon/authenticated의 직접 RPC 호출은 REVOKE 처리
+-- (트리거 자체 실행에는 영향 없음 — 하이재킹 방지 목적의 보안 하드닝).
+
+-- ------------------------------------------------------------
+-- 14. Hot Score 함수 (docs/짠메이트_DB_스키마_설계_v2.md §3 참고)
+-- ------------------------------------------------------------
+-- raw_hot_score(upvotes, downvotes, created_at): 룸 피드용. 콜드스타트 실드(최초 2시간 다운보트
+--   50% 가중)는 이 함수 내부 정렬 계산에만 적용되고, posts.upvote_count/downvote_count(화면 표시값)는
+--   항상 원본 그대로 유지된다.
+-- room_weight(room_id): W_room, 최근 48h 전체 룸 평균 글수/해당 룸 글수, 0.5~2.0 캡.
+-- best_comment_score(post_id): S_comment, 게시글 내 1등 댓글 순업보트(0 이하면 0).
+-- popular_hot_score(post_id): (raw_hot_score + S_comment*0.3) * W_room. 인기 피드용.
+-- get_room_feed(room_id, flair_id, sort, limit, offset): 룸 피드 조회 RPC.
+-- get_popular_feed(limit, offset): 인기 피드 조회 RPC. 둘 다 48h 노출 제한(인기순일 때만) 적용.

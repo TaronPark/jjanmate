@@ -1,4 +1,11 @@
-# 짠메이트 DB 스키마 설계 (ERD)
+# 짠메이트 DB 스키마 설계 (ERD) — v1, 대체됨
+
+> ⚠️ **본 문서는 2026-08-02부로 [`짠메이트_DB_스키마_설계_v2.md`](./짠메이트_DB_스키마_설계_v2.md)로 대체되었습니다.**
+> 니치/AI태깅 기반 테이블(posts v1, reactions, matching_previews, seed_contents_pool)이 전부 삭제되고
+> 레딧형 업보트 커뮤니티 스키마(rooms/post_flairs/posts/comments/votes/bookmarks/drafts/monthly_badges/notifications/blacklist_words)로 대체됐습니다.
+> 최신 `schema.sql`도 v2 스키마 기준으로 전면 재작성되었습니다. 이하 내용은 과거 설계 기록으로만 보존합니다.
+>
+> ---
 
 > 기획서 5·6·9·10번 섹션 기준. 실제 SQL은 `schema.sql`에 있음.
 > 2026-07-21 갱신: 원클릭 공감 리액션 Must 승격에 따라 `reactions` 테이블 추가.
