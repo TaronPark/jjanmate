@@ -15,7 +15,7 @@ export default async function RoomFeedPage({
   searchParams,
 }: {
   params: Promise<{ code: string }>;
-  searchParams: Promise<{ sort?: string; flair?: string }>;
+  searchParams: Promise<{ sort?: string; flair?: string; reset?: string }>;
 }) {
   const { code } = await params;
   const sp = await searchParams;
@@ -30,9 +30,12 @@ export default async function RoomFeedPage({
   if (!room) notFound();
 
   const flairs = await getFlairsByRoomId(room.id);
+  // 수정요청사항(2026-08-03, p.5): 게시글 상세 뒤로가기(?reset=1)로 들어온 경우 플레어는
+  // 기억값과 무관하게 항상 '전체'로 고정한다(정렬은 RoomFeedControls가 기억값으로 복원).
+  const isReset = sp.reset === '1';
   const sort: 'hot' | 'new' = sp.sort === 'new' ? 'new' : 'hot';
-  const activeFlair = sp.flair ? flairs.find((f) => f.code === sp.flair) : undefined;
-  const hasExplicitParams = sp.sort !== undefined || sp.flair !== undefined;
+  const activeFlair = !isReset && sp.flair ? flairs.find((f) => f.code === sp.flair) : undefined;
+  const hasExplicitParams = sp.sort !== undefined || (sp.flair !== undefined && !isReset);
 
   const posts = await getRoomFeed(room.id, activeFlair?.id ?? null, sort, user?.id ?? null);
 
@@ -50,10 +53,11 @@ export default async function RoomFeedPage({
         sort={sort}
         activeFlairCode={activeFlair?.code ?? null}
         hasExplicitParams={hasExplicitParams}
+        forceFlairReset={isReset}
       />
 
       {posts.length > 0 ? (
-        posts.map((post) => <PostCard key={post.id} post={post} />)
+        posts.map((post) => <PostCard key={post.id} post={post} currentUserId={user?.id ?? null} />)
       ) : (
         <p style={{ fontSize: 12, color: 'var(--text-sub)', textAlign: 'center', padding: '40px 16px' }}>
           아직 이 룸에 글이 없어요. 첫 글을 남겨보세요!

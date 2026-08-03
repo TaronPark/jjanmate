@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { notifyIfEnabled, notifyManyIfEnabled } from '@/lib/notify';
 import { getFlairById } from '@/lib/rooms';
+import { getAuthorActionStatusLabel } from '@/lib/flairAction';
 
 // 댓글 작성. parentCommentId는 항상 "최상위 원댓글"의 id만 받는다(1-Depth 강제) — 대댓글의
 // 대댓글을 다는 경우에도 클라이언트가 원댓글 id로 정규화해서 넘기고, mentionedNickname으로
@@ -118,7 +119,7 @@ export async function setAuthorAction(postId: string, value: 'a' | 'b'): Promise
   // 투표자 피드백 알림 (기획서: 1-Click 완료 시 해당 글에 투표했던 사람들에게 결과 통지).
   // 작성자 본인은 투표자 목록에 포함돼 있어도 알림 대상에서 제외한다.
   const flair = await getFlairById(post.flair_id);
-  const actionLabel = (value === 'a' ? flair?.action_label_a : flair?.action_label_b) ?? null;
+  const actionLabel = flair ? getAuthorActionStatusLabel(flair, value) : null;
 
   const { data: voteRows } = await admin
     .from('votes')

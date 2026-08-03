@@ -201,6 +201,18 @@ export function LogoutIcon({ size = 20, color, strokeWidth = 1.8, style }: IconP
   );
 }
 
+// 수정요청사항(2026-08-03, p.2) "최신순 앞 아이콘이 촌스럽다" — all_icons_260801.html에는
+// 시계 아이콘이 정의돼 있지 않아 기존 stroke 아이콘들과 동일한 스타일(원+시침/분침)로 새로 제작.
+// 룸피드 정렬 드롭다운의 최신순 옵션 전용.
+export function ClockIcon({ size = 20, color, strokeWidth = 1.8, style }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} stroke={color ?? 'currentColor'} style={style}>
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15.5 14" />
+    </svg>
+  );
+}
+
 // 컴포넌트 보완
 export function ChevronDownIcon({ size = 20, color, strokeWidth = 1.8, style }: IconProps) {
   return (

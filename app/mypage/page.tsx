@@ -8,10 +8,12 @@ import { getRooms, DEFAULT_ROOM_CODE } from '@/lib/rooms';
 import BottomTabBar from '@/components/BottomTabBar';
 import UserFlairEditor from '@/components/UserFlairEditor';
 import DeletePostButton from '@/components/DeletePostButton';
+import DeleteCommentButton from '@/components/DeleteCommentButton';
 import BookmarkButton from '@/components/BookmarkButton';
 import RewardsTab from '@/components/RewardsTab';
 import BadgeCelebrationBanner from '@/components/BadgeCelebrationBanner';
 import { BookmarkIcon, SettingsIcon, CrownIcon } from '@/components/icons';
+import { getAuthorActionStatusLabel } from '@/lib/flairAction';
 
 type Tab = 'posts' | 'comments' | 'bookmarks' | 'rewards';
 
@@ -137,12 +139,7 @@ async function PostsTab({ userId }: { userId: string }) {
   return (
     <div>
       {posts.map((post) => {
-        const statusLabel =
-          post.author_action_value === 'a'
-            ? post.flair.action_label_a
-            : post.author_action_value === 'b'
-              ? post.flair.action_label_b
-              : null;
+        const statusLabel = getAuthorActionStatusLabel(post.flair, post.author_action_value);
         return (
           <div key={post.id} className="list-item">
             <div className="tag-line" style={{ justifyContent: 'space-between' }}>
@@ -176,13 +173,17 @@ async function CommentsTab({ userId }: { userId: string }) {
     <div>
       {comments.map((c) => (
         <div key={c.id} className="list-item">
-          <Link href={`/room/${c.room_code}`} style={{ fontSize: 11, color: 'var(--text-sub)', textDecoration: 'none' }}>
+          {/* 수정요청사항(2026-08-03, p.7): 원글 링크가 룸 피드가 아니라 실제 게시글로 이동해야 한다 */}
+          <Link href={`/post/${c.post_id}`} style={{ fontSize: 11, color: 'var(--text-sub)', textDecoration: 'none' }}>
             🔗 원글: {c.post_title}
           </Link>
           <p style={{ fontSize: 14, margin: '8px 0' }}>{c.body}</p>
-          <span className="list-meta">
-            {getRelativeTimeKo(c.created_at)} · ↑{c.upvote_count - c.downvote_count}
-          </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="list-meta">
+              {getRelativeTimeKo(c.created_at)} · ↑{c.upvote_count - c.downvote_count}
+            </span>
+            <DeleteCommentButton commentId={c.id} />
+          </div>
         </div>
       ))}
     </div>

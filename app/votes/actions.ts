@@ -25,6 +25,13 @@ export async function castVote(
     return { error: '로그인이 필요합니다.' };
   }
 
+  // 수정요청사항(2026-08-03, p.3/p.6): 본인이 작성한 게시글/댓글에는 본인이 투표할 수 없다.
+  const ownerTable = targetType === 'post' ? 'posts' : 'comments';
+  const { data: target } = await supabase.from(ownerTable).select('user_id').eq('id', targetId).maybeSingle();
+  if (target && target.user_id === user.id) {
+    return { error: '본인 글/댓글에는 투표할 수 없어요.' };
+  }
+
   const { data: existing } = await supabase
     .from('votes')
     .select('id, value')

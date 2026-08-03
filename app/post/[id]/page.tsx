@@ -12,6 +12,7 @@ import AuthorActionButton from '@/components/AuthorActionButton';
 import ImageCarousel from '@/components/ImageCarousel';
 import DetailMoreMenu from '@/components/DetailMoreMenu';
 import { ChevronDownIcon, CrownIcon } from '@/components/icons';
+import { getAuthorActionLabels, getAuthorActionStatusLabel } from '@/lib/flairAction';
 
 // 게시글 상세 (기획서 3-5 카드 상세 확장 + 4장 댓글). 본문 전체 + 투표 + 1-Click 작성자 상태 +
 // 1-Depth 스레드 댓글(베스트 고정/접힘 포함).
@@ -30,20 +31,18 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
   if (!post) notFound();
 
   const comments = await getPostComments(id, user?.id ?? null);
-  const statusLabel =
-    post.author_action_value === 'a'
-      ? post.flair.action_label_a
-      : post.author_action_value === 'b'
-        ? post.flair.action_label_b
-        : null;
+  const statusLabel = getAuthorActionStatusLabel(post.flair, post.author_action_value);
 
   const isAuthor = user?.id === post.user_id;
   const showAuthorAction = isAuthor && post.flair.has_one_click_action && !post.author_action_value;
+  const authorActionLabels = getAuthorActionLabels(post.flair);
 
   return (
     <div className="detail-screen">
       <div className="write-header">
-        <Link href={`/room/${post.room.code}`} style={{ display: 'flex' }} aria-label="뒤로가기">
+        {/* 수정요청사항(2026-08-03, p.5): 뒤로가기는 이 글이 속했던 룸/플레어 기억값과 무관하게
+            항상 '전체' 플레어로 돌아가야 한다(정렬은 기억된 값 유지) — reset=1을 룸 피드가 해석. */}
+        <Link href={`/room/${post.room.code}?reset=1`} style={{ display: 'flex' }} aria-label="뒤로가기">
           <ChevronDownIcon size={22} color="#111" style={{ transform: 'rotate(90deg)' }} />
         </Link>
         {isAuthor ? <DetailMoreMenu postId={post.id} /> : <span style={{ width: 22 }} />}
@@ -59,7 +58,8 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {statusLabel && <span className="status-badge">{statusLabel}</span>}
-            <BookmarkButton postId={post.id} initialBookmarked={post.is_bookmarked} />
+            {/* 수정요청사항 p.3: 본인 글은 본인이 북마크할 수 없다(마이페이지에서 이미 모아볼 수 있음) */}
+            {!isAuthor && <BookmarkButton postId={post.id} initialBookmarked={post.is_bookmarked} />}
           </div>
         </div>
 
@@ -75,8 +75,8 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
 
         {post.image_urls && post.image_urls.length > 0 && <ImageCarousel images={post.image_urls} />}
 
-        {showAuthorAction && post.flair.action_label_a && (
-          <AuthorActionButton postId={post.id} actionLabelA={post.flair.action_label_a} actionLabelB={post.flair.action_label_b} />
+        {showAuthorAction && authorActionLabels.labelA && (
+          <AuthorActionButton postId={post.id} actionLabelA={authorActionLabels.labelA} actionLabelB={authorActionLabels.labelB} />
         )}
 
         <div style={{ marginTop: 20 }}>
@@ -89,6 +89,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
             voteUpLabel={post.flair.vote_up_label}
             voteDownLabel={post.flair.vote_down_label}
             showRatioBar={post.flair.show_ratio_bar}
+            disabled={isAuthor}
           />
         </div>
       </div>
@@ -99,7 +100,9 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         {comments.length > 0 ? (
-          comments.map((c) => <CommentItem key={c.id} comment={c} postId={post.id} topLevelId={c.id} depth={0} />)
+          comments.map((c) => (
+            <CommentItem key={c.id} comment={c} postId={post.id} topLevelId={c.id} depth={0} currentUserId={user?.id ?? null} />
+          ))
         ) : (
           <p style={{ fontSize: 12, color: 'var(--text-sub)', textAlign: 'center', padding: '24px 0' }}>첫 댓글을 남겨보세요!</p>
         )}

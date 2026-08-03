@@ -14,6 +14,9 @@ interface VoteButtonsProps {
   voteUpLabel: string;
   voteDownLabel: string;
   showRatioBar?: boolean;
+  // 수정요청사항(2026-08-03, p.3/p.6): 본인 글/댓글에는 본인이 투표할 수 없다. 카운트는 그대로
+  // 보여주되 클릭만 막는 방식(숨김이 아님)으로, 서버 액션의 자기투표 차단과 짝을 이룬다.
+  disabled?: boolean;
 }
 
 // 기획서 2-1/2-2: 플레어별 동적 업/다운보트 문구 + (투표형 4종에 한해) 실시간 % 비율 바.
@@ -28,6 +31,7 @@ export default function VoteButtons({
   voteUpLabel,
   voteDownLabel,
   showRatioBar,
+  disabled,
 }: VoteButtonsProps) {
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [downvotes, setDownvotes] = useState(initialDownvotes);
@@ -37,6 +41,7 @@ export default function VoteButtons({
   const handleVote = (value: 1 | -1, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (disabled) return;
 
     const prevUp = upvotes;
     const prevDown = downvotes;
@@ -88,10 +93,20 @@ export default function VoteButtons({
   return (
     <div>
       <div className="reaction-bar">
-        <button onClick={(e) => handleVote(1, e)} className={`vote-btn${myVote === 1 ? ' active' : ''}`}>
+        <button
+          onClick={(e) => handleVote(1, e)}
+          className={`vote-btn${myVote === 1 ? ' active' : ''}`}
+          disabled={disabled}
+          style={disabled ? { opacity: 0.5, cursor: 'default' } : undefined}
+        >
           <VoteUpIcon size={14} active={myVote === 1} /> {voteUpLabel} {upvotes}
         </button>
-        <button onClick={(e) => handleVote(-1, e)} className={`vote-btn${myVote === -1 ? ' active' : ''}`}>
+        <button
+          onClick={(e) => handleVote(-1, e)}
+          className={`vote-btn${myVote === -1 ? ' active' : ''}`}
+          disabled={disabled}
+          style={disabled ? { opacity: 0.5, cursor: 'default' } : undefined}
+        >
           <VoteDownIcon size={14} active={myVote === -1} /> {voteDownLabel} {downvotes}
         </button>
       </div>

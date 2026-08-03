@@ -54,3 +54,25 @@ export async function deletePost(postId: string): Promise<{ error: string | null
   revalidatePath('/', 'page');
   return { error: null };
 }
+
+// 수정요청사항(2026-08-03, p.7): 마이페이지 > 댓글 탭에서도 게시글 탭과 동일하게 본인 댓글을
+// 바로 삭제할 수 있어야 한다. 소유권 검증 + service_role 소프트 삭제 패턴은 deletePost와 동일.
+export async function deleteComment(commentId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: '로그인이 필요합니다.' };
+
+  const { data: comment } = await supabase.from('comments').select('user_id, post_id').eq('id', commentId).single();
+  if (!comment) return { error: '댓글을 찾을 수 없습니다.' };
+  if (comment.user_id !== user.id) return { error: '본인 댓글만 삭제할 수 있어요.' };
+
+  const admin = createAdminClient();
+  const { error } = await admin.from('comments').update({ is_deleted: true }).eq('id', commentId);
+  if (error) return { error: error.message };
+
+  revalidatePath('/mypage');
+  revalidatePath(`/post/${comment.post_id}`);
+  return { error: null };
+}

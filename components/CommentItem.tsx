@@ -14,17 +14,21 @@ export default function CommentItem({
   postId,
   topLevelId,
   depth,
+  currentUserId,
 }: {
   comment: CommentNode;
   postId: string;
   topLevelId: string;
   depth: 0 | 1;
+  // 수정요청사항(2026-08-03, p.6): 본인 댓글에는 본인이 투표할 수 없다.
+  currentUserId: string | null;
 }) {
   const [collapsedOverride, setCollapsedOverride] = useState<boolean | null>(null);
   const [replying, setReplying] = useState(false);
 
   const isCollapsed = collapsedOverride ?? comment.is_collapsed;
   const wrapperClass = depth === 1 ? 'reply-item' : 'comment-item';
+  const isAuthor = !!currentUserId && currentUserId === comment.user_id;
 
   if (isCollapsed) {
     return (
@@ -57,6 +61,7 @@ export default function CommentItem({
           initialMyVote={comment.my_vote}
           voteUpLabel="공감"
           voteDownLabel="비추"
+          disabled={isAuthor}
         />
         <button onClick={() => setReplying((v) => !v)} className="vote-btn plain">
           답글
@@ -107,7 +112,14 @@ export default function CommentItem({
 
       {depth === 0 &&
         comment.replies.map((reply) => (
-          <CommentItem key={reply.id} comment={reply} postId={postId} topLevelId={topLevelId} depth={1} />
+          <CommentItem
+            key={reply.id}
+            comment={reply}
+            postId={postId}
+            topLevelId={topLevelId}
+            depth={1}
+            currentUserId={currentUserId}
+          />
         ))}
     </div>
   );

@@ -4,18 +4,17 @@ import type { FeedPost } from '@/lib/types';
 import VoteButtons from './VoteButtons';
 import BookmarkButton from './BookmarkButton';
 import { CommentIcon, CrownIcon } from './icons';
+import { getAuthorActionStatusLabel } from '@/lib/flairAction';
 
 // 1축 인기 피드 / 2축 룸 피드 공용 메인 피드 카드 (기획서 3-5 레이아웃 통합 스펙 기반).
 // 2026-08-02 시안 통일: 왕관 아이콘은 post.author_has_badge(현재 유지 중인 월간 배지 보유
 // 여부, lib/feed.ts 참고)일 때만 표시 — 시안은 항상 노출하는 정적 목업이라 그대로 따르지 않음.
 // 남은 축약: 다중 이미지 캐러셀은 피드 카드에서는 대표 썸네일 1장만(상세 화면은 전체 캐러셀 지원).
-export default function PostCard({ post }: { post: FeedPost }) {
-  const statusLabel =
-    post.author_action_value === 'a'
-      ? post.flair.action_label_a
-      : post.author_action_value === 'b'
-        ? post.flair.action_label_b
-        : null;
+// 2026-08-03 수정요청사항 p.3: 본인 글에는 본인이 투표/북마크할 수 없다 — currentUserId를 받아
+// 작성자 여부를 판단하고 VoteButtons는 비활성화(카운트는 노출), BookmarkButton은 아예 숨긴다.
+export default function PostCard({ post, currentUserId = null }: { post: FeedPost; currentUserId?: string | null }) {
+  const statusLabel = getAuthorActionStatusLabel(post.flair, post.author_action_value);
+  const isAuthor = !!currentUserId && currentUserId === post.user_id;
 
   return (
     <div className="post-card">
@@ -28,7 +27,7 @@ export default function PostCard({ post }: { post: FeedPost }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {statusLabel && <span className="status-badge">{statusLabel}</span>}
-          <BookmarkButton postId={post.id} initialBookmarked={post.is_bookmarked} />
+          {!isAuthor && <BookmarkButton postId={post.id} initialBookmarked={post.is_bookmarked} />}
         </div>
       </div>
 
@@ -72,6 +71,7 @@ export default function PostCard({ post }: { post: FeedPost }) {
           voteUpLabel={post.flair.vote_up_label}
           voteDownLabel={post.flair.vote_down_label}
           showRatioBar={post.flair.show_ratio_bar}
+          disabled={isAuthor}
         />
         <Link href={`/post/${post.id}`} className="vote-btn plain">
           <CommentIcon size={15} /> {post.comment_count}

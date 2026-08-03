@@ -14,6 +14,12 @@ export async function toggleBookmark(postId: string): Promise<{ error: string | 
     return { error: '로그인이 필요합니다.', bookmarked: false };
   }
 
+  // 수정요청사항(2026-08-03, p.3): 본인 글은 본인이 북마크할 수 없다(마이페이지에서 바로 모아볼 수 있음).
+  const { data: post } = await supabase.from('posts').select('user_id').eq('id', postId).maybeSingle();
+  if (post && post.user_id === user.id) {
+    return { error: '본인 글은 북마크할 수 없어요.', bookmarked: false };
+  }
+
   const { data: existing } = await supabase
     .from('bookmarks')
     .select('id')
