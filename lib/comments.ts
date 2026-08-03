@@ -2,6 +2,16 @@ import { createClient } from '@/lib/supabase/server';
 import type { Comment } from '@/lib/types';
 import { rawHotScore } from './hotscore';
 
+// 기획서 2-4: 순업보트(업-다운) 구간 → 뱃지 레벨. 3~4=Level1(공감), 5~9=Level2(핫댓글),
+// 10 이상=Level3(베스트댓글) 후보 — 단, Level3 크라운+최상단고정은 게시글당 1개만 허용되므로
+// 10 이상인데 최종 베스트로 뽑히지 못한 댓글은 아래 getPostComments에서 Level2로 강등한다.
+function levelFromNet(net: number): 0 | 1 | 2 | 3 {
+  if (net >= 10) return 3;
+  if (net >= 5) return 2;
+  if (net >= 3) return 1;
+  return 0;
+}
+
 export interface MyComment extends Comment {
   post_title: string;
   room_code: string;
@@ -41,6 +51,9 @@ export interface CommentNode extends Comment {
   replies: CommentNode[];
   is_best: boolean;
   is_collapsed: boolean;
+  // 기획서 2-4: 댓글 순업보트 구간별 전면 뱃지(Level 0~3). Level 3은 is_best(게시글당 1개, 최고점
+  // +10 이상)와 동일한 조건이라 별도 계산 없이 is_best를 그대로 반영한다.
+  level: 0 | 1 | 2 | 3;
 }
 
 // 기획서 4장: 1-Depth 스레드 + 베스트 댓글 고정(+10 이상 최고점) + 다운보트 접힘(-5 이하,
@@ -85,6 +98,7 @@ export async function getPostComments(postId: string, currentUserId: string | nu
       replies: [],
       is_best: false,
       is_collapsed: c.upvote_count - c.downvote_count <= -5,
+      level: levelFromNet(c.upvote_count - c.downvote_count),
     });
   }
 
@@ -112,6 +126,10 @@ export async function getPostComments(postId: string, currentUserId: string | nu
     }
   }
   if (best) best.is_best = true;
+  // 크라운(Level 3)+최상단고정은 게시글당 1개만 — 대댓글 포함 전체 노드 대상으로 강등 처리.
+  for (const node of nodes.values()) {
+    if (node.level === 3 && node !== best) node.level = 2;
+  }
 
   const now = Date.now();
   topLevel.sort((a, b) => {

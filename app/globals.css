@@ -520,6 +520,23 @@ main {
   border-radius: 8px;
   margin-bottom: 16px;
 }
+/* 기획서 2-4 Level 1(공감, 3~4표): 댓글 배경에 연한 하이라이트 테두리 */
+.comment-sprout {
+  border: 1px solid var(--border);
+  background: var(--highlight);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+/* 기획서 2-4 Level 2(핫댓글, 5~9표): 텍스트 Bold(CommentItem.tsx에서 처리) + 카드 음영(Depth) 강화 */
+.comment-hot {
+  border: 1px solid var(--border);
+  background: var(--bg-app);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
 .comment-item {
   margin-bottom: 16px;
 }

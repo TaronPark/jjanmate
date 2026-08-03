@@ -227,6 +227,31 @@ export function PinnedIcon({ size = 20, color, strokeWidth = 1.8, style }: IconP
   );
 }
 
+// all_icons_260801.html "2. 댓글 업보트 전면 뱃지" 섹션의 badge-sprout — 댓글 업보트 Level 1(3~4표,
+// 공감) 전면 뱃지용. 2026-08-02까지는 정의만 있고 코드에 연결이 안 돼 있었음(CommentItem.tsx 참고).
+export function SproutIcon({ size = 20, color, strokeWidth = 1.8, style }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} stroke={color ?? 'currentColor'} style={style}>
+      <path d="M7 20h10" />
+      <path d="M12 20v-8" />
+      <path d="M12 12c-3-2.5-5-2.5-7-1 0 5 3.5 7 7 7" />
+      <path d="M12 12c3-2.5 5-2.5 7-1 0 5-3.5 7-7 7" />
+    </svg>
+  );
+}
+
+// all_icons_260801.html의 badge-crown — 댓글 업보트 Level 3(10표 이상, 베스트댓글) 전면 뱃지용.
+// 기존엔 PinnedIcon(압정)으로 대체 사용 중이었으나 기획서 명세와 다른 아이콘이라 이걸로 교체함.
+// 이름을 CommentCrownIcon으로 둔 이유: 월간 랭킹용 solid-fill CrownIcon(아래, 다른 파일 스타일)과
+// 이름이 겹치고 스타일도 다름(이쪽은 다른 뱃지 아이콘들과 통일된 stroke 기반).
+export function CommentCrownIcon({ size = 20, color, strokeWidth = 1.8, style }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} stroke={color ?? 'currentColor'} style={style}>
+      <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z" />
+    </svg>
+  );
+}
+
 export function TrashIcon({ size = 20, color, strokeWidth = 1.8, style }: IconProps) {
   return (
     <svg {...base(size, strokeWidth)} stroke={color ?? 'currentColor'} style={style}>
