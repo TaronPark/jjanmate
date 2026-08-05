@@ -179,7 +179,19 @@ main {
   margin-bottom: 6px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+}
+/* 수정요청사항(2026-08-05, p.1): 룸과 플레어가 동일한 [텍스트] 양식이라 구분이 안 되던 문제 —
+   룸은 지금처럼 텍스트로 유지하고, 플레어만 타원형 배지로 시각적으로 분리한다. */
+.flair-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--highlight);
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 .post-title {
   font-size: 16px;

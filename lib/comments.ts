@@ -141,8 +141,11 @@ export async function getPostComments(postId: string, currentUserId: string | nu
     );
   });
 
+  // 수정요청사항(2026-08-05, p.3): 답글이 최신순(내림차순)이면 "답글에 다시 답글 → @멘션" 흐름에서
+  // 나중에 단 답글이 위로 올라가 대화가 거꾸로 읽힌다. 오래된순(작성 순서)으로 바꿔 위→아래로
+  // 읽을 때 멘션 대상이 항상 먼저 나오도록 한다.
   for (const node of topLevel) {
-    node.replies.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    node.replies.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }
 
   return topLevel;

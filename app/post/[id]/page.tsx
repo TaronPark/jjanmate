@@ -64,7 +64,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="tag-line">
-          [{post.room.name}] [{post.flair.label}]
+          [{post.room.name}] <span className="flair-badge">{post.flair.label}</span>
         </div>
         <p className="post-title" style={{ fontSize: 18 }}>
           {post.title}

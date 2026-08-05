@@ -33,7 +33,7 @@ export default function PostCard({ post, currentUserId = null }: { post: FeedPos
 
       <Link href={`/post/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
         <div className="tag-line">
-          [{post.room.name}] [{post.flair.label}]
+          [{post.room.name}] <span className="flair-badge">{post.flair.label}</span>
         </div>
         <p className="post-title">{post.title}</p>
         <p

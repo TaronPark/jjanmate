@@ -99,10 +99,8 @@ export default async function MyPage({ searchParams }: { searchParams: Promise<{
             <div className="stat-label">받은 순업보트</div>
           </div>
         </div>
-
-        <Link href="/mypage?tab=rewards&sub=archive" className="btn btn-secondary" style={{ display: 'inline-block', width: 'auto', padding: '8px 16px' }}>
-          🏆 배지 보관함
-        </Link>
+        {/* 수정요청사항(2026-08-05, p.4): 보상·명예 탭 안에 '내 배지 보관함'이 이미 있어 상단
+            프로필의 이 버튼은 중복이라 삭제 — 배지 획득 시엔 BadgeCelebrationBanner가 안내한다. */}
       </div>
 
       <div className="page-body" style={{ paddingBottom: 0, paddingTop: 0 }}>
@@ -143,8 +141,11 @@ async function PostsTab({ userId }: { userId: string }) {
         return (
           <div key={post.id} className="list-item">
             <div className="tag-line" style={{ justifyContent: 'space-between' }}>
-              <Link href={`/room/${post.room.code}`} style={{ color: 'var(--text-sub)', textDecoration: 'none' }}>
-                [{post.room.name}] [{post.flair.label}]
+              <Link
+                href={`/room/${post.room.code}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-sub)', textDecoration: 'none' }}
+              >
+                [{post.room.name}] <span className="flair-badge">{post.flair.label}</span>
               </Link>
               {statusLabel && <span className="status-badge">{statusLabel}</span>}
             </div>
@@ -200,8 +201,8 @@ async function BookmarksTab({ userId }: { userId: string }) {
       {posts.map((post) => (
         <div key={post.id} className="list-item">
           <div className="tag-line" style={{ justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--text-main)' }}>
-              [{post.room.name}] [{post.flair.label}]
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-main)' }}>
+              [{post.room.name}] <span className="flair-badge">{post.flair.label}</span>
             </span>
             <BookmarkButton postId={post.id} initialBookmarked />
           </div>
