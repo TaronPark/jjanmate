@@ -3,6 +3,7 @@ import { getRelativeTimeKo } from '@/lib/date';
 import type { FeedPost } from '@/lib/types';
 import VoteButtons from './VoteButtons';
 import BookmarkButton from './BookmarkButton';
+import ImageCarousel from './ImageCarousel';
 import { CommentIcon, CrownIcon } from './icons';
 import { getAuthorActionStatusLabel } from '@/lib/flairAction';
 
@@ -19,10 +20,15 @@ export default function PostCard({ post, currentUserId = null }: { post: FeedPos
   return (
     <div className="post-card">
       <div className="post-header">
+        {/* 수정요청사항(2026-08-05, p.5-6 ①): 룸/플레어를 별도 줄이 아니라 닉네임·게시시간과
+            같은 줄에 작게 배치 — 개인 유저플레어(author_user_flair)와 구분하기 위해 룸 이름은
+            텍스트로, 게시글 플레어는 flair-badge로 표시한다. */}
         <div className="user-info">
           {post.author_has_badge && <CrownIcon size={14} color="#111" />}
           <span className="user-name">{post.author_nickname}</span>
           {post.author_user_flair && <span className="user-flair">{post.author_user_flair}</span>}
+          <span style={{ color: 'var(--text-sub)', fontSize: 11 }}>[{post.room.name}]</span>
+          <span className="flair-badge">{post.flair.label}</span>
           <span className="time">{getRelativeTimeKo(post.created_at)}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -32,15 +38,13 @@ export default function PostCard({ post, currentUserId = null }: { post: FeedPos
       </div>
 
       <Link href={`/post/${post.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-        <div className="tag-line">
-          [{post.room.name}] <span className="flair-badge">{post.flair.label}</span>
-        </div>
         <p className="post-title">{post.title}</p>
         <p
           className="post-desc"
           style={{
             display: '-webkit-box',
-            WebkitLineClamp: 2,
+            // 수정요청사항 p.5-6 ③: 클릭 전 미리보기를 2줄→6줄로 확대(참고 의견 반영, 사용자 확정).
+            WebkitLineClamp: 6,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
             marginBottom: post.one_line_question || post.image_urls?.[0] ? 6 : 0,
@@ -51,14 +55,9 @@ export default function PostCard({ post, currentUserId = null }: { post: FeedPos
         {post.one_line_question && (
           <p style={{ fontSize: 13, fontWeight: 600, margin: '0 0 6px' }}>❓ {post.one_line_question}</p>
         )}
-        {post.image_urls && post.image_urls[0] && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={post.image_urls[0]}
-            alt="첨부 이미지"
-            style={{ width: '100%', aspectRatio: '4 / 5', objectFit: 'cover', borderRadius: 8, marginBottom: 12 }}
-          />
-        )}
+        {/* 수정요청사항 p.5-6 ②: 클릭 없이도 좌우로 넘겨 첨부 이미지를 모두 볼 수 있도록
+            대표 이미지 1장 노출 대신 ImageCarousel(상세 화면과 동일 컴포넌트)을 재사용한다. */}
+        {post.image_urls && post.image_urls.length > 0 && <ImageCarousel images={post.image_urls} />}
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
