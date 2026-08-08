@@ -85,6 +85,12 @@ docs/       기획서·로드맵·ERD·schema.sql·운영 이슈트래커 등 (�
      Vercel 대시보드 → Settings → Deployment Protection → "Protection Bypass for Automation"에서 시크릿을 발급하고,
      요청에 `x-vercel-protection-bypass` 헤더(+ 쿠키 유지가 필요하면 `x-vercel-set-bypass-cookie: true`)를 실어야
      자동화 도구가 접근 가능.
+8. **Apple Developer Program 신청 — 결제 완료 후 enrollment가 "withdrawn"으로 처리된 사례 (2026-08-08).**
+   결제(₩129,000, 주문번호 `W1876214889`)는 정상 완료됐는데도 enrollment 상태가 "withdrawn"으로 바뀌는 경우가
+   있음. 이 상태에서 재등록을 시도하면 결제 화면이 다시 뜨는데, 이게 정상 플로우처럼 보여도 실제로는
+   **중복 결제로 이어질 위험이 있음.** 이런 상황(이미 결제했는데 enrollment가 취소/철회된 것처럼 보임)을 마주치면
+   **결제 화면에 다시 진입하기 전에 반드시 Apple Developer Support(한국어 지원 가능)에 먼저 문의**해서 기존
+   결제 내역을 확인받고 진행할 것 — 스스로 재결제부터 하지 말 것.
 
 ## 데이터 모델 핵심 개념
 
