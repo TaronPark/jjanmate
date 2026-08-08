@@ -9,7 +9,12 @@
 // 네트워크로 그대로 흘려보낸다(network-first/network-only).
 
 const CACHE_NAME = 'jjanmate-static-v1';
-const STATIC_CACHE_PATTERNS = [/^\/_next\/static\//, /^\/icons\//, /^\/icon(\?.*)?$/, /^\/apple-icon(\?.*)?$/];
+// /icon, /apple-icon(Next.js next/og 동적 렌더링 라우트)은 URL에 콘텐츠 해시가 없어서
+// 캐싱 대상에서 제외한다 — 나중에 정식 브랜드 아이콘으로 교체할 때 CACHE_NAME을 올리지
+// 않으면 이미 설치된 사용자에게 구버전 아이콘이 계속 캐시-우선으로 남을 수 있기 때문
+// (code review에서 발견, 2026-08-08). public/icons/*.png는 파일명 자체가 불변 식별자라
+// 안전하게 캐시 가능.
+const STATIC_CACHE_PATTERNS = [/^\/_next\/static\//, /^\/icons\//];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
