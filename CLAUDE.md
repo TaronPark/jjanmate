@@ -72,6 +72,19 @@ docs/       기획서·로드맵·ERD·schema.sql·운영 이슈트래커 등 (�
    채로 남는 경우가 있었음(예: 8/6에 작성된 게시글 1건, 이미지 2장 — 2026-08-08에 발견해 새 프로젝트 Storage로
    이전 + DB URL 갱신 완료). 구 프로젝트를 나중에 pause/삭제하기 전에 `posts.image_urls`를 구 프로젝트 도메인
    문자열로 전수 검색해서 남은 게 없는지 다시 한번 확인할 것.
+7. **PWA 작업(2026-08-08, A단계) 트러블슈팅 3건**:
+   - **`next-pwa`/Serwist는 Next.js 16(Turbopack 기본 번들러)과 안 맞음.** 둘 다 webpack 플러그인 기반이라 쓰려면
+     `next build --webpack`으로 프로젝트 전체 번들러를 되돌려야 함 — Turbopack 도입 이점을 스스로 포기하는 셈이라
+     배제하고, `public/sw.js`에 라이브러리 없이 수동으로 구현함(정적 파일이라 번들러와 무관하게 동작).
+   - **Lighthouse의 PWA 카테고리는 2024년에 완전히 삭제됨.** `--only-categories=pwa`가 "unrecognized category" 에러를
+     내고, `installable-manifest`/`service-worker`/`maskable-icon` 등 개별 감사 ID도 더 이상 존재하지 않음(Lighthouse
+     13.x 기준 categories: accessibility/best-practices/performance/seo/agentic-browsing뿐). "Lighthouse PWA 80점"
+     같은 기준은 더 이상 측정 불가 — 대신 HTTPS/manifest 유효성/아이콘 서빙/서비스워커 서빙/등록 후 세션 유지 5개를
+     수동 체크리스트로 확인함. 상세는 `docs/짠메이트_플레이스토어_앱스토어_개발로드맵.md` A단계 참고.
+   - **Vercel Preview 배포는 기본적으로 Deployment Protection(SSO)이 걸려있어 외부(curl/Lighthouse 등)에서 못 들어감.**
+     Vercel 대시보드 → Settings → Deployment Protection → "Protection Bypass for Automation"에서 시크릿을 발급하고,
+     요청에 `x-vercel-protection-bypass` 헤더(+ 쿠키 유지가 필요하면 `x-vercel-set-bypass-cookie: true`)를 실어야
+     자동화 도구가 접근 가능.
 
 ## 데이터 모델 핵심 개념
 
@@ -102,6 +115,29 @@ docs/       기획서·로드맵·ERD·schema.sql·운영 이슈트래커 등 (�
   대상 행을 SELECT로 먼저 보여주고 사용자 확인을 받은 뒤 진행하는 습관을 유지하세요.
 - 장시간(몇 시간 단위) 무인 작업을 맡길 때는 `bypassPermissions` 모드보다 `auto` 모드 + 명시적 allow/deny 규칙 조합을 권장합니다
   (자세한 이유는 `docs/Claude_Code_시작_가이드.md` 참고).
+
+## 설치된 스킬 활용 방침 (2026-08-08)
+
+Matt Pocock Skills(34개, `.agents/skills/`, 이 프로젝트 전용) + gstack(54개, `~/.claude/skills/`, 전역)까지 총 88개 스킬이
+설치돼 있습니다(상세 목록은 `docs/Claude_Code_설치_스킬_가이드(mattpocock_gstack).md` 참고). 스킬 이름이 겹치는 경우가
+많고(`review`류 등) 후보가 88개나 되면 자동 트리거가 애매해져서 아무것도 안 쓰고 그냥 넘어가는 경우가 많습니다.
+그래서 아래 5개는 **명시적으로 요청하지 않아도 상황에 맞으면 먼저 제안하거나 사용**하세요. 그 외 스킬은 사용자가
+이름을 직접 언급했을 때만 쓰는 것을 기본으로 합니다.
+
+| 상황 | 스킬 | 비고 |
+|---|---|---|
+| 기능 구현을 완료하고 커밋하기 전 | `code-review` | Standards/Spec 두 축으로 리뷰 |
+| 원인이 불명확한 에러·반복 실패가 발생했을 때 | `diagnosing-bugs` | 오늘 gstack 브라우저 handoff가 계속 실패했던 것 같은 상황 |
+| 최신 API/라이브러리 사실 확인이 필요할 때(버전, deprecated 여부 등) | `research` | Claude 자체 지식이 오래됐을 수 있는 부분은 1차 자료로 검증 |
+| 어떤 접근 방식이 맞을지 애매할 때 | `ask-matt` | 스킬/플로우 라우팅 |
+| CLAUDE.md나 스킬 문서를 새로 쓰거나 고칠 때 | `writing-for-agents` | 에이전트가 읽을 문서 작성 가이드 |
+
+**주의**: gstack의 브라우저 계열 스킬(`browse`, `qa`, `qa-only`, `setup-browser-cookies`)은 2026-08-08에 이 Windows
+환경에서 handoff/DPAPI 문제로 반복 실패했습니다. 브라우저 확인이 필요하면 이것들 대신 **공식 Claude in Chrome
+확장(`@browser`)**을 쓰세요 — 실제로 이게 문제없이 잘 동작했습니다.
+
+`ship`, `land-and-deploy`, `setup-browser-cookies`, `cso`, `guard`처럼 되돌리기 어렵거나 강한 권한을 쓰는 스킬은
+위 목록에 일부러 안 넣었습니다 — 이런 것들은 사용자가 명시적으로 이름을 불렀을 때만 실행하세요.
 
 ## 작업 방식 전환 (2026-08-08 결정)
 
