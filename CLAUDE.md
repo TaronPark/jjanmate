@@ -72,6 +72,19 @@ docs/       기획서·로드맵·ERD·schema.sql·운영 이슈트래커 등 (�
    채로 남는 경우가 있었음(예: 8/6에 작성된 게시글 1건, 이미지 2장 — 2026-08-08에 발견해 새 프로젝트 Storage로
    이전 + DB URL 갱신 완료). 구 프로젝트를 나중에 pause/삭제하기 전에 `posts.image_urls`를 구 프로젝트 도메인
    문자열로 전수 검색해서 남은 게 없는지 다시 한번 확인할 것.
+7. **PWA 작업(2026-08-08, A단계) 트러블슈팅 3건**:
+   - **`next-pwa`/Serwist는 Next.js 16(Turbopack 기본 번들러)과 안 맞음.** 둘 다 webpack 플러그인 기반이라 쓰려면
+     `next build --webpack`으로 프로젝트 전체 번들러를 되돌려야 함 — Turbopack 도입 이점을 스스로 포기하는 셈이라
+     배제하고, `public/sw.js`에 라이브러리 없이 수동으로 구현함(정적 파일이라 번들러와 무관하게 동작).
+   - **Lighthouse의 PWA 카테고리는 2024년에 완전히 삭제됨.** `--only-categories=pwa`가 "unrecognized category" 에러를
+     내고, `installable-manifest`/`service-worker`/`maskable-icon` 등 개별 감사 ID도 더 이상 존재하지 않음(Lighthouse
+     13.x 기준 categories: accessibility/best-practices/performance/seo/agentic-browsing뿐). "Lighthouse PWA 80점"
+     같은 기준은 더 이상 측정 불가 — 대신 HTTPS/manifest 유효성/아이콘 서빙/서비스워커 서빙/등록 후 세션 유지 5개를
+     수동 체크리스트로 확인함. 상세는 `docs/짠메이트_플레이스토어_앱스토어_개발로드맵.md` A단계 참고.
+   - **Vercel Preview 배포는 기본적으로 Deployment Protection(SSO)이 걸려있어 외부(curl/Lighthouse 등)에서 못 들어감.**
+     Vercel 대시보드 → Settings → Deployment Protection → "Protection Bypass for Automation"에서 시크릿을 발급하고,
+     요청에 `x-vercel-protection-bypass` 헤더(+ 쿠키 유지가 필요하면 `x-vercel-set-bypass-cookie: true`)를 실어야
+     자동화 도구가 접근 가능.
 
 ## 데이터 모델 핵심 개념
 
