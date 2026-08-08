@@ -23,9 +23,13 @@ export default function LoginPage() {
 
   return (
     <main className="page-body" style={{ paddingTop: 40 }}>
-      <div className="logo-text" style={{ marginBottom: 24 }}>
-        Jjanmate
-      </div>
+      <img
+        src="/brand/wordmark.png"
+        alt="짠메이트"
+        width={140}
+        height={140}
+        style={{ display: 'block', marginBottom: 24 }}
+      />
       <h3 style={{ fontSize: 16, marginBottom: 16 }}>짠메이트 시작하기</h3>
       <button className="btn btn-primary" style={{ marginBottom: 8 }} onClick={handleKakaoLogin}>
         카카오로 시작하기

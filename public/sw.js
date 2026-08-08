@@ -8,12 +8,13 @@
 // 갱신 안 됨" 버그가 재발할 수 있음. 그래서 정적 자산만 캐싱하고, 나머지는 전부
 // 네트워크로 그대로 흘려보낸다(network-first/network-only).
 
-const CACHE_NAME = 'jjanmate-static-v1';
-// /icon, /apple-icon(Next.js next/og 동적 렌더링 라우트)은 URL에 콘텐츠 해시가 없어서
-// 캐싱 대상에서 제외한다 — 나중에 정식 브랜드 아이콘으로 교체할 때 CACHE_NAME을 올리지
-// 않으면 이미 설치된 사용자에게 구버전 아이콘이 계속 캐시-우선으로 남을 수 있기 때문
-// (code review에서 발견, 2026-08-08). public/icons/*.png는 파일명 자체가 불변 식별자라
-// 안전하게 캐시 가능.
+// v1→v2 (2026-08-08): 임시 코드생성 아이콘 → 정식 브랜드 아이콘(public/icons/*.png) 교체.
+// CACHE_NAME을 올려야 이미 설치된 사용자의 cache-first 캐시가 무효화되어 새 아이콘을 받음.
+const CACHE_NAME = 'jjanmate-static-v2';
+// /icon, /apple-icon(정적 PNG 파일로 교체됨, 2026-08-08)도 여전히 캐싱 대상에서 제외한다 —
+// 파일명이 안 바뀌는 한 향후 또 교체될 수 있어(URL에 콘텐츠 해시 없음), CACHE_NAME 수동
+// 버전업만으로 무효화하는 현재 전략을 그대로 유지. public/icons/*.png는 파일명 자체가
+// 불변 식별자라 안전하게 캐시 가능.
 const STATIC_CACHE_PATTERNS = [/^\/_next\/static\//, /^\/icons\//];
 
 self.addEventListener('install', (event) => {
