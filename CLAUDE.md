@@ -116,6 +116,29 @@ docs/       기획서·로드맵·ERD·schema.sql·운영 이슈트래커 등 (�
 - 장시간(몇 시간 단위) 무인 작업을 맡길 때는 `bypassPermissions` 모드보다 `auto` 모드 + 명시적 allow/deny 규칙 조합을 권장합니다
   (자세한 이유는 `docs/Claude_Code_시작_가이드.md` 참고).
 
+## 설치된 스킬 활용 방침 (2026-08-08)
+
+Matt Pocock Skills(34개, `.agents/skills/`, 이 프로젝트 전용) + gstack(54개, `~/.claude/skills/`, 전역)까지 총 88개 스킬이
+설치돼 있습니다(상세 목록은 `docs/Claude_Code_설치_스킬_가이드(mattpocock_gstack).md` 참고). 스킬 이름이 겹치는 경우가
+많고(`review`류 등) 후보가 88개나 되면 자동 트리거가 애매해져서 아무것도 안 쓰고 그냥 넘어가는 경우가 많습니다.
+그래서 아래 5개는 **명시적으로 요청하지 않아도 상황에 맞으면 먼저 제안하거나 사용**하세요. 그 외 스킬은 사용자가
+이름을 직접 언급했을 때만 쓰는 것을 기본으로 합니다.
+
+| 상황 | 스킬 | 비고 |
+|---|---|---|
+| 기능 구현을 완료하고 커밋하기 전 | `code-review` | Standards/Spec 두 축으로 리뷰 |
+| 원인이 불명확한 에러·반복 실패가 발생했을 때 | `diagnosing-bugs` | 오늘 gstack 브라우저 handoff가 계속 실패했던 것 같은 상황 |
+| 최신 API/라이브러리 사실 확인이 필요할 때(버전, deprecated 여부 등) | `research` | Claude 자체 지식이 오래됐을 수 있는 부분은 1차 자료로 검증 |
+| 어떤 접근 방식이 맞을지 애매할 때 | `ask-matt` | 스킬/플로우 라우팅 |
+| CLAUDE.md나 스킬 문서를 새로 쓰거나 고칠 때 | `writing-for-agents` | 에이전트가 읽을 문서 작성 가이드 |
+
+**주의**: gstack의 브라우저 계열 스킬(`browse`, `qa`, `qa-only`, `setup-browser-cookies`)은 2026-08-08에 이 Windows
+환경에서 handoff/DPAPI 문제로 반복 실패했습니다. 브라우저 확인이 필요하면 이것들 대신 **공식 Claude in Chrome
+확장(`@browser`)**을 쓰세요 — 실제로 이게 문제없이 잘 동작했습니다.
+
+`ship`, `land-and-deploy`, `setup-browser-cookies`, `cso`, `guard`처럼 되돌리기 어렵거나 강한 권한을 쓰는 스킬은
+위 목록에 일부러 안 넣었습니다 — 이런 것들은 사용자가 명시적으로 이름을 불렀을 때만 실행하세요.
+
 ## 작업 방식 전환 (2026-08-08 결정)
 
 - **2026-08-09부터 실제 앱 기능 개발은 VS Code + Claude Code(VS Code 확장)로 진행.** 그 전까지는 Cowork(Claude 데스크톱 앱)에서
